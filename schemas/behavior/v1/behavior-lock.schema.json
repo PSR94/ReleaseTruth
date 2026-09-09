@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://releasetruth.dev/schemas/behavior/v1/behavior-lock.schema.json",
+  "title": "ReleaseTruth behavior.lock v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "capturedAt", "surfaces", "fingerprint"],
+  "properties": {
+    "schema": { "const": "releasetruth.behavior/v1" },
+    "release": { "type": "string" },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "metadata": { "type": "object", "additionalProperties": true },
+    "surfaces": { "$ref": "#/$defs/surfaces" },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidence" },
+      "default": []
+    },
+    "normalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rulesHash", "defaultsEnabled", "redactionsApplied"],
+      "properties": {
+        "rulesHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "defaultsEnabled": { "type": "boolean" },
+        "redactionsApplied": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^(|sha256:[0-9a-f]{64})$",
+      "description": "SHA-256 of canonical behavioral content. Empty only while constructing a lock in memory."
+    }
+  },
+  "$defs": {
+    "surfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "browser": { "$ref": "#/$defs/observations" },
+        "api": { "$ref": "#/$defs/observations" },
+        "cli": { "$ref": "#/$defs/observations" },
+        "accessibility": { "$ref": "#/$defs/observations" },
+        "events": { "$ref": "#/$defs/observations" },
+        "performance": { "$ref": "#/$defs/observations" }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/observation" },
+      "default": []
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "attributes"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "attributes": true,
+        "evidence": { "type": "array", "items": { "type": "string" }, "default": [] }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "path", "redacted"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "mediaType": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "redacted": { "type": "boolean", "default": false }
+      }
+    }
+  }
+}

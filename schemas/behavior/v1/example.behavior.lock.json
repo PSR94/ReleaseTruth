@@ -1,0 +1,49 @@
+{
+  "schema": "releasetruth.behavior/v1",
+  "release": "v1-good",
+  "capturedAt": "2026-09-09T20:00:00Z",
+  "metadata": {
+    "commit": "abc123",
+    "source": "TruthShop"
+  },
+  "surfaces": {
+    "api": [
+      {
+        "id": "POST /api/orders",
+        "kind": "http_exchange",
+        "attributes": {
+          "status": 400,
+          "contentType": "application/json",
+          "body": { "error": "Invalid quantity" }
+        },
+        "evidence": ["http-orders-invalid"]
+      }
+    ],
+    "accessibility": [
+      {
+        "id": "checkout/pay",
+        "kind": "element",
+        "name": "Pay now",
+        "attributes": { "role": "button", "keyboardFocusable": true },
+        "evidence": ["a11y-checkout"]
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "http-orders-invalid",
+      "kind": "http_exchange",
+      "path": "artifacts/http/orders-invalid.json",
+      "mediaType": "application/json",
+      "redacted": true
+    },
+    {
+      "id": "a11y-checkout",
+      "kind": "accessibility_snapshot",
+      "path": "artifacts/a11y/checkout.json",
+      "mediaType": "application/json",
+      "redacted": true
+    }
+  ],
+  "fingerprint": ""
+}

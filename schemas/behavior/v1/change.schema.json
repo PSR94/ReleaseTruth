@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://releasetruth.dev/schemas/behavior/v1/change.schema.json",
+  "title": "ReleaseTruth structured behavioral change",
+  "type": "object",
+  "required": ["id", "surface", "observationId", "path", "changeType", "severity", "confidence", "evidence", "classificationReason"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^chg-[0-9a-f]+$" },
+    "surface": { "enum": ["browser", "api", "cli", "accessibility", "events", "performance"] },
+    "observationId": { "type": "string" },
+    "path": { "type": "string" },
+    "changeType": { "enum": ["observation_added", "observation_removed", "value_added", "value_removed", "value_changed", "array_changed"] },
+    "before": true,
+    "after": true,
+    "severity": { "enum": ["expected", "minor", "significant", "breaking"] },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "classificationReason": { "type": "string", "minLength": 1 }
+  }
+}
