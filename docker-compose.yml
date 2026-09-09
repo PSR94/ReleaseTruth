@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: releasetruth
+      POSTGRES_USER: releasetruth
+      POSTGRES_PASSWORD: releasetruth
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U releasetruth -d releasetruth"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - releasetruth-postgres:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      RELEASETRUTH_DATABASE_URL: postgresql+psycopg://releasetruth:releasetruth@postgres:5432/releasetruth
+      RELEASETRUTH_CORS_ORIGINS: http://localhost:3002,http://127.0.0.1:3002
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+    environment:
+      RELEASETRUTH_API_URL: http://api:8000
+    depends_on:
+      - api
+    ports:
+      - "3002:3002"
+
+  truthshop-good:
+    build:
+      context: .
+      dockerfile: apps/demo-shop/Dockerfile
+    environment:
+      TRUTHSHOP_VARIANT: good
+    command: ["pnpm", "--filter", "@releasetruth/truthshop", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
+    ports:
+      - "3000:3000"
+
+  truthshop-regression:
+    build:
+      context: .
+      dockerfile: apps/demo-shop/Dockerfile
+    environment:
+      TRUTHSHOP_VARIANT: regression
+    command: ["pnpm", "--filter", "@releasetruth/truthshop", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
+    ports:
+      - "3001:3000"
+
+volumes:
+  releasetruth-postgres:

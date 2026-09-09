@@ -1,0 +1,57 @@
+name: ReleaseTruth behavioral diff
+description: Compare two ReleaseTruth behavior locks and publish evidence-backed CI reports.
+author: ReleaseTruth
+inputs:
+  base-lock:
+    description: Path to the baseline behavior.lock.json
+    required: true
+  candidate-lock:
+    description: Path to the candidate behavior.lock.json
+    required: true
+  config:
+    description: Path to .releasetruth.yml
+    required: false
+    default: .releasetruth.yml
+  fail-on:
+    description: breaking, significant, minor, or never
+    required: false
+    default: breaking
+  report-dir:
+    description: Directory for generated Markdown, SARIF and JSON reports
+    required: false
+    default: .releasetruth/action
+outputs:
+  report-json:
+    description: Generated ReleaseTruth JSON report
+    value: ${{ steps.paths.outputs.json }}
+  report-sarif:
+    description: Generated SARIF report
+    value: ${{ steps.paths.outputs.sarif }}
+runs:
+  using: composite
+  steps:
+    - name: Install pinned Rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: 1.98.1
+    - name: Render deterministic reports
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "${{ inputs.report-dir }}"
+        cargo run --quiet --locked --manifest-path "$GITHUB_ACTION_PATH/Cargo.toml" -p releasetruth -- compare "${{ inputs.base-lock }}" "${{ inputs.candidate-lock }}" --config "${{ inputs.config }}" --format json --output "${{ inputs.report-dir }}/report.json" --fail-on never
+        cargo run --quiet --locked --manifest-path "$GITHUB_ACTION_PATH/Cargo.toml" -p releasetruth -- compare "${{ inputs.base-lock }}" "${{ inputs.candidate-lock }}" --config "${{ inputs.config }}" --format markdown --output "${{ inputs.report-dir }}/report.md" --fail-on never
+        cargo run --quiet --locked --manifest-path "$GITHUB_ACTION_PATH/Cargo.toml" -p releasetruth -- compare "${{ inputs.base-lock }}" "${{ inputs.candidate-lock }}" --config "${{ inputs.config }}" --format sarif --output "${{ inputs.report-dir }}/report.sarif" --fail-on never
+        cat "${{ inputs.report-dir }}/report.md" >> "$GITHUB_STEP_SUMMARY"
+    - id: paths
+      name: Expose report paths
+      shell: bash
+      run: |
+        echo "json=${{ inputs.report-dir }}/report.json" >> "$GITHUB_OUTPUT"
+        echo "sarif=${{ inputs.report-dir }}/report.sarif" >> "$GITHUB_OUTPUT"
+    - name: Enforce compatibility threshold
+      shell: bash
+      run: cargo run --quiet --locked --manifest-path "$GITHUB_ACTION_PATH/Cargo.toml" -p releasetruth -- compare "${{ inputs.base-lock }}" "${{ inputs.candidate-lock }}" --config "${{ inputs.config }}" --format text --fail-on "${{ inputs.fail-on }}"
+branding:
+  icon: activity
+  color: blue
