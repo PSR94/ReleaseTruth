@@ -6,7 +6,11 @@
   "main": "dist/index.js",
   "types": "src/index.ts",
   "exports": { ".": { "types": "./src/index.ts", "default": "./dist/index.js" } },
-  "scripts": { "build": "tsc -p tsconfig.json", "lint": "tsc -p tsconfig.json --noEmit", "test": "vitest run" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm --filter @releasetruth/performance-adapter build && vitest run"
+  },
   "dependencies": {
     "@releasetruth/performance-adapter": "workspace:*",
     "@releasetruth/shared-types": "workspace:*"
