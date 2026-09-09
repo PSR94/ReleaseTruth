@@ -7,8 +7,8 @@ Create Date: 2026-09-09
 
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision: str = "0001_initial"
 down_revision: str | None = None
@@ -28,7 +28,6 @@ def upgrade() -> None:
         sa.UniqueConstraint("slug"),
     )
     op.create_index("ix_projects_slug", "projects", ["slug"], unique=True)
-
     op.create_table(
         "snapshots",
         sa.Column("id", sa.String(length=36), nullable=False),
@@ -44,7 +43,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_snapshots_fingerprint", "snapshots", ["fingerprint"])
     op.create_index("ix_snapshots_project_id", "snapshots", ["project_id"])
-
     op.create_table(
         "runs",
         sa.Column("id", sa.String(length=36), nullable=False),
@@ -67,7 +65,6 @@ def upgrade() -> None:
     op.create_index("ix_runs_candidate_snapshot_id", "runs", ["candidate_snapshot_id"])
     op.create_index("ix_runs_git_sha", "runs", ["git_sha"])
     op.create_index("ix_runs_project_id", "runs", ["project_id"])
-
     op.create_table(
         "changes",
         sa.Column("id", sa.String(length=36), nullable=False),
@@ -88,7 +85,6 @@ def upgrade() -> None:
     op.create_index("ix_changes_run_id", "changes", ["run_id"])
     op.create_index("ix_changes_severity", "changes", ["severity"])
     op.create_index("ix_changes_surface", "changes", ["surface"])
-
     op.create_table(
         "baselines",
         sa.Column("project_id", sa.String(length=36), nullable=False),
@@ -99,7 +95,6 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["snapshot_id"], ["snapshots.id"]),
         sa.PrimaryKeyConstraint("project_id"),
     )
-
     op.create_table(
         "github_deliveries",
         sa.Column("id", sa.String(length=36), nullable=False),

@@ -20,9 +20,15 @@ services:
     environment:
       RELEASETRUTH_DATABASE_URL: postgresql+psycopg://releasetruth:releasetruth@postgres:5432/releasetruth
       RELEASETRUTH_CORS_ORIGINS: http://localhost:3002,http://127.0.0.1:3002
+      RELEASETRUTH_GITHUB_WEBHOOK_ENABLED: "false"
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     ports:
       - "8000:8000"
 
@@ -33,7 +39,13 @@ services:
     environment:
       RELEASETRUTH_API_URL: http://api:8000
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     ports:
       - "3002:3002"
 
@@ -44,6 +56,11 @@ services:
     environment:
       TRUTHSHOP_VARIANT: good
     command: ["pnpm", "--filter", "@releasetruth/truthshop", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/products').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     ports:
       - "3000:3000"
 
@@ -54,6 +71,11 @@ services:
     environment:
       TRUTHSHOP_VARIANT: regression
     command: ["pnpm", "--filter", "@releasetruth/truthshop", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/products').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     ports:
       - "3001:3000"
 

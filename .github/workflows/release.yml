@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Validate tagged release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: releasetruth
+          POSTGRES_USER: releasetruth
+          POSTGRES_PASSWORD: releasetruth
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U releasetruth -d releasetruth"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.1
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9.15.4
+          run_install: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - run: pip install -e 'apps/api[dev]'
+      - run: pnpm install --frozen-lockfile
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - run: cargo test --locked --workspace
+      - run: pnpm check:ts
+      - run: ruff check apps/api && pytest -q apps/api
+      - name: PostgreSQL migrations
+        working-directory: apps/api
+        env:
+          RELEASETRUTH_DATABASE_URL: postgresql+psycopg://releasetruth:releasetruth@127.0.0.1:5432/releasetruth
+        run: alembic upgrade head
+      - run: docker compose build api dashboard truthshop-good truthshop-regression
+      - name: Install Chromium runtime
+        run: pnpm --filter @releasetruth/browser-adapter exec playwright install --with-deps chromium
+      - name: Full behavioral E2E
+        run: ./scripts/e2e.sh
+
+  build-cli:
+    name: Build CLI (${{ matrix.platform }})
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: macos-latest
+            platform: macos
+          - os: windows-latest
+            platform: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.1
+      - name: Build CLI
+        run: cargo build --locked --release -p releasetruth
+      - name: Package Unix CLI
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp target/release/releasetruth "dist/releasetruth"
+          tar -czf "dist/releasetruth-${GITHUB_REF_NAME}-${{ matrix.platform }}.tar.gz" -C dist releasetruth
+          rm dist/releasetruth
+      - name: Package Windows CLI
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target/release/releasetruth.exe dist/releasetruth.exe
+          Compress-Archive -Path dist/releasetruth.exe -DestinationPath "dist/releasetruth-$env:GITHUB_REF_NAME-windows.zip"
+          Remove-Item dist/releasetruth.exe
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cli-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build-cli
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: cli-*
+          path: release-assets
+          merge-multiple: true
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd release-assets
+          sha256sum * > SHA256SUMS
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release-assets/* --title "ReleaseTruth $GITHUB_REF_NAME" --generate-notes

@@ -38,11 +38,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.15.4
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -95,9 +95,31 @@ jobs:
       - name: Build platform images
         run: docker compose build api dashboard truthshop-good truthshop-regression
 
+  action-smoke:
+    name: Composite Action smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Execute local ReleaseTruth Action
+        id: releasetruth
+        uses: ./
+        with:
+          base-lock: schemas/behavior/v1/example.behavior.lock.json
+          candidate-lock: schemas/behavior/v1/example.behavior.lock.json
+          config: .releasetruth.demo.yml
+          fail-on: never
+          report-dir: .releasetruth/action-smoke
+      - name: Verify Action outputs
+        shell: bash
+        run: |
+          test -s "${{ steps.releasetruth.outputs.report-json }}"
+          test -s "${{ steps.releasetruth.outputs.report-sarif }}"
+          test -s .releasetruth/action-smoke/report.md
+
   e2e:
     name: Behavioral capture to dashboard E2E
-    needs: [rust, node, python, containers]
+    needs: [rust, node, python, containers, action-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -106,11 +128,11 @@ jobs:
         with:
           toolchain: 1.98.1
       - uses: Swatinem/rust-cache@v2
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.15.4
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -127,7 +149,7 @@ jobs:
         run: ./scripts/e2e.sh
       - name: Upload demo evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: releasetruth-e2e-evidence
           path: .releasetruth/
