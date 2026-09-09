@@ -68,8 +68,7 @@ pub fn compare(base: &BehaviorLock, candidate: &BehaviorLock) -> Comparison {
                     ChangeType::ObservationAdded,
                     None,
                     Some(serde_json::to_value(after).expect("observation is serializable")),
-                    &[],
-                    &after.evidence,
+                    (&[], &after.evidence),
                 )),
                 (Some(before), None) => changes.push(make_change(
                     surface,
@@ -78,8 +77,7 @@ pub fn compare(base: &BehaviorLock, candidate: &BehaviorLock) -> Comparison {
                     ChangeType::ObservationRemoved,
                     Some(serde_json::to_value(before).expect("observation is serializable")),
                     None,
-                    &before.evidence,
-                    &[],
+                    (&before.evidence, &[]),
                 )),
                 (Some(before), Some(after)) => diff_value(
                     surface,
@@ -143,8 +141,7 @@ fn diff_value(
                         ChangeType::ValueAdded,
                         None,
                         Some(value.clone()),
-                        before_evidence,
-                        after_evidence,
+                        (before_evidence, after_evidence),
                     )),
                     (Some(value), None) => changes.push(make_change(
                         surface,
@@ -153,8 +150,7 @@ fn diff_value(
                         ChangeType::ValueRemoved,
                         Some(value.clone()),
                         None,
-                        before_evidence,
-                        after_evidence,
+                        (before_evidence, after_evidence),
                     )),
                     (Some(left), Some(right)) => diff_value(
                         surface,
@@ -193,8 +189,7 @@ fn diff_value(
                             ChangeType::ValueAdded,
                             None,
                             Some((**value).clone()),
-                            before_evidence,
-                            after_evidence,
+                            (before_evidence, after_evidence),
                         )),
                         (Some(value), None) => changes.push(make_change(
                             surface,
@@ -203,8 +198,7 @@ fn diff_value(
                             ChangeType::ValueRemoved,
                             Some((**value).clone()),
                             None,
-                            before_evidence,
-                            after_evidence,
+                            (before_evidence, after_evidence),
                         )),
                         (Some(left), Some(right)) => diff_value(
                             surface,
@@ -227,8 +221,7 @@ fn diff_value(
                     ChangeType::ArrayChanged,
                     Some(before.clone()),
                     Some(after.clone()),
-                    before_evidence,
-                    after_evidence,
+                    (before_evidence, after_evidence),
                 ));
             }
         }
@@ -239,8 +232,7 @@ fn diff_value(
             ChangeType::ValueChanged,
             Some(before.clone()),
             Some(after.clone()),
-            before_evidence,
-            after_evidence,
+            (before_evidence, after_evidence),
         )),
     }
 }
@@ -266,8 +258,7 @@ fn make_change(
     change_type: ChangeType,
     before: Option<Value>,
     after: Option<Value>,
-    before_evidence: &[String],
-    after_evidence: &[String],
+    evidence_pair: (&[String], &[String]),
 ) -> Change {
     let seed = format!(
         "{}|{}|{}|{:?}",
@@ -277,6 +268,7 @@ fn make_change(
         change_type
     );
     let digest = Sha256::digest(seed.as_bytes());
+    let (before_evidence, after_evidence) = evidence_pair;
     let mut evidence: BTreeSet<String> = before_evidence.iter().cloned().collect();
     evidence.extend(after_evidence.iter().cloned());
     Change {
