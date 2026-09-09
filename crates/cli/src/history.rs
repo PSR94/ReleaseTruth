@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     fn baseline_serializes_expected_fields() {
-        let mut lock = BehaviorLock::default();
+        let mut lock = BehaviorLock::empty("2026-09-09T00:00:00Z");
         lock.release = Some("v1".into());
         lock.fingerprint = fingerprint_snapshot(&lock).unwrap();
         let record = BaselineRecord {
