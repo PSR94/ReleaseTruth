@@ -1,4 +1,5 @@
 mod config;
+mod history;
 mod report;
 
 use std::{
@@ -10,6 +11,7 @@ use std::{
 use anyhow::{bail, Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use config::{AppConfig, DEFAULT_CONFIG};
+use history::{find_change_origin, first_regression, load_baseline, load_history, record_capture, set_baseline};
 use releasetruth_core::{
     classify_changes, compare, fingerprint_snapshot, load_behavior_lock, normalize_snapshot,
     score_comparison, verify_fingerprint, BehaviorLock, Severity, SUPPORTED_SCHEMA,
@@ -44,6 +46,14 @@ enum Command {
     Compare(CompareArgs),
     /// Compute or verify a behavior fingerprint.
     Fingerprint(FingerprintArgs),
+    /// Set or inspect the local behavioral baseline.
+    Baseline(BaselineArgs),
+    /// Record or inspect deterministic capture history.
+    History(HistoryArgs),
+    /// Find the first recorded release containing a deterministic change id.
+    Blame(BlameArgs),
+    /// Find the first recorded release that crosses a severity threshold.
+    Bisect(BisectArgs),
 }
 
 #[derive(Args)]
@@ -76,6 +86,10 @@ struct CaptureArgs {
     release: Option<String>,
     #[arg(long, default_value = ".releasetruth.yml")]
     config: PathBuf,
+    #[arg(long, help = "Record the finalized lock in local history")]
+    record_history: bool,
+    #[arg(long, help = "Git commit associated with this capture")]
+    git_sha: Option<String>,
 }
 
 #[derive(Args)]
@@ -105,6 +119,50 @@ struct FingerprintArgs {
         help = "Verify stored fingerprint instead of printing a computed one"
     )]
     verify: bool,
+}
+
+#[derive(Args)]
+struct BaselineArgs {
+    #[arg(help = "Behavior lock to set as baseline; omit to inspect current baseline")]
+    lock: Option<PathBuf>,
+    #[arg(long, default_value = ".releasetruth/baseline.json")]
+    store: PathBuf,
+}
+
+#[derive(Args)]
+struct HistoryArgs {
+    #[arg(long, help = "Behavior lock to append to history")]
+    record: Option<PathBuf>,
+    #[arg(long, help = "Git commit associated with --record")]
+    git_sha: Option<String>,
+    #[arg(long, default_value = ".releasetruth/history.json")]
+    store: PathBuf,
+    #[arg(long, default_value_t = 20)]
+    limit: usize,
+}
+
+#[derive(Args)]
+struct BlameArgs {
+    #[arg(help = "Baseline behavior lock used as comparison origin")]
+    base: PathBuf,
+    #[arg(help = "Stable ReleaseTruth change id, for example chg-...")]
+    change_id: String,
+    #[arg(long, default_value = ".releasetruth/history.json")]
+    history: PathBuf,
+    #[arg(long, default_value = ".releasetruth.yml")]
+    config: PathBuf,
+}
+
+#[derive(Args)]
+struct BisectArgs {
+    #[arg(help = "Baseline behavior lock used as comparison origin")]
+    base: PathBuf,
+    #[arg(long, default_value = ".releasetruth/history.json")]
+    history: PathBuf,
+    #[arg(long, default_value = ".releasetruth.yml")]
+    config: PathBuf,
+    #[arg(long, value_enum, default_value = "breaking")]
+    fail_on: FailOn,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -151,6 +209,10 @@ fn run(cli: Cli) -> Result<ExitCode> {
         Command::Capture(args) => capture(args, cli.quiet),
         Command::Compare(args) => compare_command(args),
         Command::Fingerprint(args) => fingerprint(args),
+        Command::Baseline(args) => baseline(args, cli.quiet),
+        Command::History(args) => history_command(args, cli.quiet),
+        Command::Blame(args) => blame(args),
+        Command::Bisect(args) => bisect(args),
     }
 }
 
@@ -234,6 +296,13 @@ fn capture(args: CaptureArgs, quiet: bool) -> Result<ExitCode> {
     }
     fs::write(&destination, serde_json::to_vec_pretty(&normalized)?)
         .with_context(|| format!("failed to write `{}`", destination.display()))?;
+    if args.record_history {
+        record_capture(
+            &destination,
+            Path::new(".releasetruth/history.json"),
+            args.git_sha,
+        )?;
+    }
     if !quiet {
         println!(
             "Captured behavioral contract\n  output: {}\n  fingerprint: {}",
@@ -292,6 +361,95 @@ fn fingerprint(args: FingerprintArgs) -> Result<ExitCode> {
     } else {
         println!("{}", fingerprint_snapshot(&lock)?);
         Ok(ExitCode::SUCCESS)
+    }
+}
+
+fn baseline(args: BaselineArgs, quiet: bool) -> Result<ExitCode> {
+    if let Some(lock) = args.lock {
+        let record = set_baseline(&lock, &args.store)?;
+        if !quiet {
+            println!(
+                "Baseline set\n  release: {}\n  fingerprint: {}\n  lock: {}",
+                record.release.as_deref().unwrap_or("unknown"),
+                record.fingerprint,
+                record.lock_path.display()
+            );
+        }
+    } else {
+        let record = load_baseline(&args.store)?;
+        println!(
+            "{}\t{}\t{}",
+            record.release.as_deref().unwrap_or("unknown"),
+            record.fingerprint,
+            record.lock_path.display()
+        );
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn history_command(args: HistoryArgs, quiet: bool) -> Result<ExitCode> {
+    if let Some(lock) = args.record {
+        let record = record_capture(&lock, &args.store, args.git_sha)?;
+        if !quiet {
+            println!(
+                "Recorded {} ({})",
+                record.release.as_deref().unwrap_or("unknown"),
+                record.fingerprint
+            );
+        }
+        return Ok(ExitCode::SUCCESS);
+    }
+    let history = load_history(&args.store)?;
+    for record in history.records.iter().rev().take(args.limit) {
+        println!(
+            "{}\t{}\t{}\t{}",
+            record.recorded_at,
+            record.release.as_deref().unwrap_or("unknown"),
+            record.git_sha.as_deref().unwrap_or("local"),
+            record.fingerprint
+        );
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn blame(args: BlameArgs) -> Result<ExitCode> {
+    let config = AppConfig::load(&args.config)?;
+    match find_change_origin(&args.base, &args.history, &args.change_id, &config.classification)? {
+        Some(record) => {
+            println!(
+                "{}\t{}\t{}\t{}",
+                args.change_id,
+                record.release.as_deref().unwrap_or("unknown"),
+                record.git_sha.as_deref().unwrap_or("local"),
+                record.fingerprint
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        None => bail!("change `{}` was not found in recorded history", args.change_id),
+    }
+}
+
+fn bisect(args: BisectArgs) -> Result<ExitCode> {
+    let threshold = args
+        .fail_on
+        .threshold()
+        .ok_or_else(|| anyhow::anyhow!("--fail-on never cannot identify a regression"))?;
+    let config = AppConfig::load(&args.config)?;
+    match first_regression(&args.base, &args.history, threshold, &config.classification)? {
+        Some((record, count)) => {
+            println!(
+                "first regression: {}\n  git: {}\n  fingerprint: {}\n  changes at threshold: {}",
+                record.release.as_deref().unwrap_or("unknown"),
+                record.git_sha.as_deref().unwrap_or("local"),
+                record.fingerprint,
+                count
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        None => {
+            println!("no recorded release crosses the requested severity threshold");
+            Ok(ExitCode::SUCCESS)
+        }
     }
 }
 
