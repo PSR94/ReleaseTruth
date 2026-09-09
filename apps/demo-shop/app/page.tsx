@@ -3,6 +3,8 @@ import { ProductGrid } from '../components/ProductGrid';
 import { products } from '../lib/products';
 import { currentVariant } from '../lib/variant';
 
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   const variant = currentVariant();
   return (

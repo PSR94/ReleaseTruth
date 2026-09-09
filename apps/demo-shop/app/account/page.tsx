@@ -1,5 +1,7 @@
 import { behaviorFor, currentVariant } from '../../lib/variant';
 
+export const dynamic = 'force-dynamic';
+
 export default function AccountPage() {
   const behavior = behaviorFor(currentVariant());
   return (

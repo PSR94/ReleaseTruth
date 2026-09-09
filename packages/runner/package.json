@@ -1,0 +1,18 @@
+{
+  "name": "@releasetruth/runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": { "build": "tsc -p tsconfig.json", "lint": "tsc -p tsconfig.json --noEmit" },
+  "dependencies": {
+    "@releasetruth/api-adapter": "workspace:*",
+    "@releasetruth/browser-adapter": "workspace:*",
+    "@releasetruth/cli-adapter": "workspace:*",
+    "@releasetruth/events-adapter": "workspace:*",
+    "@releasetruth/performance-adapter": "workspace:*",
+    "@releasetruth/shared-types": "workspace:*",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": { "@types/node": "^22.10.2", "typescript": "^5.7.2" }
+}

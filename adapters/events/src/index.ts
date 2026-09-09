@@ -25,7 +25,7 @@ export class EventCollector {
       request.on('end', () => {
         const text = Buffer.concat(chunks).toString('utf8');
         let payload: unknown = text;
-        try { payload = text.length === 0 ? null : JSON.parse(text); } catch { /* text payload remains text */ }
+        try { payload = text.length === 0 ? null : JSON.parse(text); } catch { /* keep text */ }
         const headers = Object.fromEntries(Object.entries(request.headers)
           .filter(([name]) => !['authorization', 'cookie'].includes(name.toLowerCase()))
           .map(([name, value]) => [name, Array.isArray(value) ? value : value ?? '']));
@@ -43,14 +43,16 @@ export class EventCollector {
   }
 
   observation(id: string): Observation {
-    return {
-      id,
-      kind: 'event_sequence',
-      attributes: {
-        order: this.events.map((event) => inferType(event.payload)),
-        events: this.events,
-      },
-    };
+    const stableEvents = this.events.map((event) => ({
+      id: `event-${event.sequence}`,
+      sequence: event.sequence,
+      type: inferType(event.payload),
+      method: event.method,
+      path: event.path,
+      headers: Object.fromEntries(Object.entries(event.headers).filter(([name]) => ['content-type', 'x-truthshop-event'].includes(name.toLowerCase()))),
+      payload: event.payload,
+    }));
+    return { id, kind: 'event_sequence', attributes: { order: stableEvents.map((event) => event.type), events: stableEvents } };
   }
 
   async close(): Promise<void> {

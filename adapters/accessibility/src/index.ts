@@ -10,22 +10,27 @@ export async function captureAccessibilityState(page: Page, id: string): Promise
       const rect = (element as HTMLElement).getBoundingClientRect();
       return style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
     };
-    const controls = [...document.querySelectorAll('button,a,input,select,textarea,[role]')]
+    const controls = [...document.querySelectorAll('button,a,input,select,textarea,[role],[data-testid]')]
       .filter(visible)
       .slice(0, 300)
       .map((element, index) => {
         const html = element as HTMLElement;
-        const role = element.getAttribute('role') ?? implicitRole(element);
+        const implicit = implicitRole(element);
+        const role = element.getAttribute('role') ?? implicit ?? 'generic';
         const accessibleName = element.getAttribute('aria-label')
           ?? element.getAttribute('title')
           ?? (element instanceof HTMLInputElement ? element.labels?.[0]?.textContent : null)
           ?? element.textContent
           ?? '';
+        const normalizedName = accessibleName.replace(/\s+/g, ' ').trim().slice(0, 300);
+        const stableId = element.getAttribute('data-testid')
+          ?? element.getAttribute('id')
+          ?? `${role}:${normalizedName || element.getAttribute('name') || index}`;
         return {
-          index,
+          id: stableId,
           tag: element.tagName.toLowerCase(),
           role,
-          accessibleName: accessibleName.replace(/\s+/g, ' ').trim().slice(0, 300),
+          accessibleName: normalizedName,
           keyboardFocusable: html.tabIndex >= 0,
           tabIndex: html.tabIndex,
           ariaDisabled: element.getAttribute('aria-disabled'),
@@ -35,7 +40,7 @@ export async function captureAccessibilityState(page: Page, id: string): Promise
       });
     const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')]
       .filter(visible)
-      .map((heading) => ({ level: Number(heading.tagName[1]), text: heading.textContent?.replace(/\s+/g, ' ').trim() ?? '' }));
+      .map((heading, index) => ({ id: heading.id || `heading-${index}`, level: Number(heading.tagName[1]), text: heading.textContent?.replace(/\s+/g, ' ').trim() ?? '' }));
     return { controls, headings };
 
     function implicitRole(element: Element): string | null {
@@ -65,7 +70,7 @@ export async function captureAccessibilityState(page: Page, id: string): Promise
         id: violation.id,
         impact: violation.impact,
         help: violation.help,
-        nodes: violation.nodes.map((node) => ({ target: node.target, failureSummary: node.failureSummary })),
+        nodes: violation.nodes.map((node, index) => ({ id: `${violation.id}-${index}`, target: node.target, failureSummary: node.failureSummary })),
       })),
       incomplete: axe.incomplete.map((item) => ({ id: item.id, impact: item.impact, nodeCount: item.nodes.length })),
     },

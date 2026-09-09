@@ -1,6 +1,8 @@
 import { CheckoutPanel } from './CheckoutPanel';
 import { behaviorFor, currentVariant } from '../../lib/variant';
 
+export const dynamic = 'force-dynamic';
+
 export default function CheckoutPage() {
   const behavior = behaviorFor(currentVariant());
   return (

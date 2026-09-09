@@ -1,0 +1,80 @@
+normalization:
+  defaults: true
+  rules:
+    - type: replace_regex
+      pattern: 'ord_demo_[0-9]+'
+      replacement: '<ORDER_ID>'
+      scope: /surfaces
+    - type: remove
+      path: /surfaces/performance/0/attributes/samples
+
+classification:
+  performanceRegressionPercent: 50
+  expectedChangeIds: []
+  severityOverrides: {}
+
+scoring:
+  penalties:
+    expected: 0
+    minor: 1
+    significant: 7
+    breaking: 20
+  surfaceWeights:
+    api: 1
+    accessibility: 1.25
+    browser: 1
+    cli: 1
+    events: 0.75
+    performance: 0.5
+
+journeys:
+  - name: home
+    steps:
+      - goto: /
+      - expect:
+          text: Useful objects
+  - name: profile
+    steps:
+      - goto: /account
+      - expect:
+          selector: button[type=submit]
+  - name: checkout-safety
+    steps:
+      - goto: /checkout
+      - expect:
+          selector: '[data-testid="pay"]'
+      - click:
+          selector: button.text-button
+
+apiScenarios:
+  - name: Invalid order validation
+    method: POST
+    path: /api/orders
+    headers:
+      content-type: application/json
+    body:
+      quantity: 0
+  - name: Search behavior
+    method: GET
+    path: /api/search?q=lamp
+    samples: 5
+  - name: Session cookie behavior
+    method: POST
+    path: /api/session
+
+cliScenarios:
+  - id: truthshop receipt
+    executable: '${NODE}'
+    args:
+      - '${ROOT}/apps/demo-shop/scripts/truthshop-cli.mjs'
+      - receipt
+    timeoutMs: 5000
+
+eventScenarios:
+  - id: checkout webhook sequence
+    path: /api/checkout
+
+performanceScenarios:
+  - id: GET /api/search
+    path: /api/search?q=lamp
+    samples: 10

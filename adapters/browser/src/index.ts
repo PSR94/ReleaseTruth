@@ -41,9 +41,14 @@ async function captureJourney(browser: Browser, target: string, journey: Browser
   page.setDefaultTimeout(options.timeoutMs ?? 10_000);
   const consoleErrors: string[] = [];
   const network: Array<{ method: string; url: string; status: number }> = [];
+  const dialogs: Array<{ type: string; message: string }> = [];
   page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   page.on('response', (response) => {
     network.push({ method: response.request().method(), url: response.url(), status: response.status() });
+  });
+  page.on('dialog', async (dialog) => {
+    dialogs.push({ type: dialog.type(), message: dialog.message() });
+    await dialog.dismiss();
   });
 
   try {
@@ -95,7 +100,7 @@ async function captureJourney(browser: Browser, target: string, journey: Browser
         content: bytes.toString('base64'), encoding: 'base64',
       });
     }
-    const state = { url: page.url(), visibleText, significantDom, cookies, localStorageKeys, consoleErrors, network, focused };
+    const state = { url: page.url(), visibleText, significantDom, cookies, localStorageKeys, consoleErrors, network, dialogs, focused };
     const content = JSON.stringify(state, null, 2);
     artifacts.push({
       ref: {

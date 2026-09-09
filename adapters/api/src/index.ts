@@ -13,18 +13,10 @@ export interface ApiScenario {
   samples?: number;
 }
 
-export interface ApiCaptureOptions {
-  redactHeaders?: string[];
-  maxBodyBytes?: number;
-}
+export interface ApiCaptureOptions { redactHeaders?: string[]; maxBodyBytes?: number; }
+const DEFAULT_REDACTED_HEADERS = ['authorization', 'cookie', 'proxy-authorization', 'x-api-key'];
 
-const DEFAULT_REDACTED_HEADERS = ['authorization', 'cookie', 'set-cookie', 'proxy-authorization', 'x-api-key'];
-
-export async function captureApi(
-  target: string,
-  scenarios: readonly ApiScenario[],
-  options: ApiCaptureOptions = {},
-): Promise<AdapterCapture> {
+export async function captureApi(target: string, scenarios: readonly ApiScenario[], options: ApiCaptureOptions = {}): Promise<AdapterCapture> {
   const observations: Observation[] = [];
   const artifacts: CapturedArtifact[] = [];
   for (const scenario of scenarios) {
@@ -42,7 +34,6 @@ async function captureScenario(target: string, scenario: ApiScenario, options: A
   let latest: Response | undefined;
   let latestBody = '';
   const sampleCount = Math.max(1, scenario.samples ?? 1);
-
   for (let sample = 0; sample < sampleCount; sample += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), scenario.timeoutMs ?? 10_000);
@@ -57,16 +48,11 @@ async function captureScenario(target: string, scenario: ApiScenario, options: A
       });
       latestBody = await latest.text();
       durations.push(performance.now() - started);
-    } finally {
-      clearTimeout(timeout);
-    }
+    } finally { clearTimeout(timeout); }
   }
-
   if (latest === undefined) throw new Error(`API scenario ${method} ${url} produced no response`);
   const maxBodyBytes = options.maxBodyBytes ?? 256_000;
-  const truncatedBody = Buffer.byteLength(latestBody) > maxBodyBytes
-    ? `${latestBody.slice(0, maxBodyBytes)}\n<TRUNCATED>`
-    : latestBody;
+  const truncatedBody = Buffer.byteLength(latestBody) > maxBodyBytes ? `${latestBody.slice(0, maxBodyBytes)}\n<TRUNCATED>` : latestBody;
   const contentType = latest.headers.get('content-type') ?? '';
   const parsedBody = parseBody(truncatedBody, contentType);
   const headers = redactHeaders(latest.headers, options.redactHeaders);
@@ -79,29 +65,12 @@ async function captureScenario(target: string, scenario: ApiScenario, options: A
   };
   const content = JSON.stringify(payload, null, 2);
   const artifact: CapturedArtifact = {
-    ref: {
-      id: evidenceId,
-      kind: 'http_exchange',
-      path: `artifacts/api/${slug(id)}.json`,
-      mediaType: 'application/json',
-      sha256: `sha256:${createHash('sha256').update(content).digest('hex')}`,
-      redacted: true,
-    },
+    ref: { id: evidenceId, kind: 'http_exchange', path: `artifacts/api/${slug(id)}.json`, mediaType: 'application/json', sha256: `sha256:${createHash('sha256').update(content).digest('hex')}`, redacted: true },
     content,
   };
   const observation: Observation = {
-    id,
-    kind: 'http_exchange',
-    ...(scenario.name === undefined ? {} : { name: scenario.name }),
-    attributes: {
-      method,
-      path: new URL(url).pathname,
-      status: latest.status,
-      headers,
-      contentType,
-      body: parsedBody,
-      timing: summarizeTimings(durations),
-    },
+    id, kind: 'http_exchange', ...(scenario.name === undefined ? {} : { name: scenario.name }),
+    attributes: { method, path: new URL(url).pathname, status: latest.status, headers, contentType, body: parsedBody, timing: summarizeTimings(durations) },
     evidence: [evidenceId],
   };
   return { observation, artifact };
@@ -111,24 +80,27 @@ export function redactHeaders(headers: Headers, extra: readonly string[] = []): 
   return redactRecord(Object.fromEntries(headers.entries()), extra);
 }
 
-export function redactRecord(
-  headers: Record<string, string>,
-  extra: readonly string[] = [],
-): Record<string, string> {
+export function redactRecord(headers: Record<string, string>, extra: readonly string[] = []): Record<string, string> {
   const hidden = new Set([...DEFAULT_REDACTED_HEADERS, ...extra].map((value) => value.toLowerCase()));
-  return Object.fromEntries(
-    Object.entries(headers)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, value]) => [key.toLowerCase(), hidden.has(key.toLowerCase()) ? '<REDACTED>' : value]),
-  );
+  return Object.fromEntries(Object.entries(headers).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => {
+    const normalized = key.toLowerCase();
+    if (normalized === 'set-cookie') return [normalized, sanitizeSetCookie(value)];
+    return [normalized, hidden.has(normalized) ? '<REDACTED>' : value];
+  }));
+}
+
+export function sanitizeSetCookie(value: string): string {
+  return value.split(/,(?=\s*[^;,]+=)/g).map((cookie) => {
+    const [pair = '', ...attributes] = cookie.split(';');
+    const name = pair.split('=', 1)[0]?.trim() || '<COOKIE>';
+    const safeAttributes = attributes.map((attribute) => attribute.trim()).filter(Boolean);
+    return [`${name}=<REDACTED>`, ...safeAttributes].join('; ');
+  }).join(', ');
 }
 
 function parseBody(text: string, contentType: string): unknown {
-  if (contentType.includes('json')) {
-    try { return JSON.parse(text) as unknown; } catch { return text; }
-  }
+  if (contentType.includes('json')) { try { return JSON.parse(text) as unknown; } catch { return text; } }
   return text;
 }
-
 function ensureTrailingSlash(value: string): string { return value.endsWith('/') ? value : `${value}/`; }
 function slug(value: string): string { return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 96); }
