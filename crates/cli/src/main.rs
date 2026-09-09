@@ -100,7 +100,10 @@ struct CompareArgs {
 #[derive(Args)]
 struct FingerprintArgs {
     lock: PathBuf,
-    #[arg(long, help = "Verify stored fingerprint instead of printing a computed one")]
+    #[arg(
+        long,
+        help = "Verify stored fingerprint instead of printing a computed one"
+    )]
     verify: bool,
 }
 
@@ -221,8 +224,7 @@ fn capture(args: CaptureArgs, quiet: bool) -> Result<ExitCode> {
         draft.release = Some(release);
     }
     if draft.captured_at.trim().is_empty() {
-        draft.captured_at =
-            chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+        draft.captured_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
     }
     let mut normalized = normalize_snapshot(&draft, &config.normalization)?;
     normalized.fingerprint = fingerprint_snapshot(&normalized)?;

@@ -82,7 +82,8 @@ impl Surfaces {
 
     pub fn sort_by_id(&mut self) {
         for surface in Surface::ALL {
-            self.get_mut(surface).sort_by(|left, right| left.id.cmp(&right.id));
+            self.get_mut(surface)
+                .sort_by(|left, right| left.id.cmp(&right.id));
         }
     }
 }

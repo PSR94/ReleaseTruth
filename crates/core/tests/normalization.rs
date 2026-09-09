@@ -1,4 +1,6 @@
-use releasetruth_core::{normalize_snapshot, BehaviorLock, NormalizationConfig, NormalizationRule, Observation};
+use releasetruth_core::{
+    normalize_snapshot, BehaviorLock, NormalizationConfig, NormalizationRule, Observation,
+};
 use serde_json::json;
 
 #[test]
@@ -22,7 +24,10 @@ fn default_volatile_values_normalize_without_reordering_meaningful_arrays() {
     assert_eq!(attrs["requestId"], "<UUID>");
     assert_eq!(attrs["receivedAt"], "<TIMESTAMP>");
     assert_eq!(attrs["callback"], "http://localhost:<PORT>/hooks");
-    assert_eq!(attrs["events"], json!(["payment.completed", "invoice.generated"]));
+    assert_eq!(
+        attrs["events"],
+        json!(["payment.completed", "invoice.generated"])
+    );
 }
 
 #[test]
@@ -42,5 +47,8 @@ fn arrays_can_be_explicitly_sorted_when_semantically_unordered() {
         }],
     };
     let normalized = normalize_snapshot(&lock, &config).unwrap();
-    assert_eq!(normalized.surfaces.api[0].attributes["tags"], json!(["a", "z"]));
+    assert_eq!(
+        normalized.surfaces.api[0].attributes["tags"],
+        json!(["a", "z"])
+    );
 }

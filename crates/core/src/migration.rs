@@ -12,7 +12,10 @@ pub enum MigrationError {
     #[error("behavior lock is missing the string `schema` discriminator")]
     MissingSchema,
     #[error("unsupported behavior lock schema `{found}`; this binary supports `{supported}`. Upgrade ReleaseTruth or migrate the lockfile explicitly")]
-    UnsupportedSchema { found: String, supported: &'static str },
+    UnsupportedSchema {
+        found: String,
+        supported: &'static str,
+    },
 }
 
 /// Load a behavior lock through the schema migration boundary.

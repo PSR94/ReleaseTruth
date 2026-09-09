@@ -50,21 +50,46 @@ pub fn compare(base: &BehaviorLock, candidate: &BehaviorLock) -> Comparison {
     for surface in Surface::ALL {
         let base_map = by_id(base.surfaces.get(surface));
         let candidate_map = by_id(candidate.surfaces.get(surface));
-        let ids: BTreeSet<&str> = base_map.keys().chain(candidate_map.keys()).copied().collect();
+        let ids: BTreeSet<&str> = base_map
+            .keys()
+            .chain(candidate_map.keys())
+            .copied()
+            .collect();
 
         for observation_id in ids {
-            match (base_map.get(observation_id), candidate_map.get(observation_id)) {
+            match (
+                base_map.get(observation_id),
+                candidate_map.get(observation_id),
+            ) {
                 (None, Some(after)) => changes.push(make_change(
-                    surface, observation_id, "/", ChangeType::ObservationAdded, None,
-                    Some(serde_json::to_value(after).expect("observation is serializable")), &[], &after.evidence,
+                    surface,
+                    observation_id,
+                    "/",
+                    ChangeType::ObservationAdded,
+                    None,
+                    Some(serde_json::to_value(after).expect("observation is serializable")),
+                    &[],
+                    &after.evidence,
                 )),
                 (Some(before), None) => changes.push(make_change(
-                    surface, observation_id, "/", ChangeType::ObservationRemoved,
-                    Some(serde_json::to_value(before).expect("observation is serializable")), None, &before.evidence, &[],
+                    surface,
+                    observation_id,
+                    "/",
+                    ChangeType::ObservationRemoved,
+                    Some(serde_json::to_value(before).expect("observation is serializable")),
+                    None,
+                    &before.evidence,
+                    &[],
                 )),
                 (Some(before), Some(after)) => diff_value(
-                    surface, observation_id, "", &before.attributes, &after.attributes,
-                    &before.evidence, &after.evidence, &mut changes,
+                    surface,
+                    observation_id,
+                    "",
+                    &before.attributes,
+                    &after.attributes,
+                    &before.evidence,
+                    &after.evidence,
+                    &mut changes,
                 ),
                 (None, None) => unreachable!(),
             }
@@ -72,11 +97,18 @@ pub fn compare(base: &BehaviorLock, candidate: &BehaviorLock) -> Comparison {
     }
 
     changes.sort_by(|left, right| left.id.cmp(&right.id));
-    Comparison { base_fingerprint: base.fingerprint.clone(), candidate_fingerprint: candidate.fingerprint.clone(), changes }
+    Comparison {
+        base_fingerprint: base.fingerprint.clone(),
+        candidate_fingerprint: candidate.fingerprint.clone(),
+        changes,
+    }
 }
 
 fn by_id(observations: &[Observation]) -> BTreeMap<&str, &Observation> {
-    observations.iter().map(|item| (item.id.as_str(), item)).collect()
+    observations
+        .iter()
+        .map(|item| (item.id.as_str(), item))
+        .collect()
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -90,47 +122,139 @@ fn diff_value(
     after_evidence: &[String],
     changes: &mut Vec<Change>,
 ) {
-    if before == after { return; }
+    if before == after {
+        return;
+    }
 
     match (before, after) {
         (Value::Object(left), Value::Object(right)) => {
-            let keys: BTreeSet<&str> = left.keys().chain(right.keys()).map(String::as_str).collect();
+            let keys: BTreeSet<&str> = left
+                .keys()
+                .chain(right.keys())
+                .map(String::as_str)
+                .collect();
             for key in keys {
                 let child_path = format!("{}/{}", path, escape_pointer(key));
                 match (left.get(key), right.get(key)) {
-                    (None, Some(value)) => changes.push(make_change(surface, observation_id, &child_path, ChangeType::ValueAdded, None, Some(value.clone()), before_evidence, after_evidence)),
-                    (Some(value), None) => changes.push(make_change(surface, observation_id, &child_path, ChangeType::ValueRemoved, Some(value.clone()), None, before_evidence, after_evidence)),
-                    (Some(left), Some(right)) => diff_value(surface, observation_id, &child_path, left, right, before_evidence, after_evidence, changes),
+                    (None, Some(value)) => changes.push(make_change(
+                        surface,
+                        observation_id,
+                        &child_path,
+                        ChangeType::ValueAdded,
+                        None,
+                        Some(value.clone()),
+                        before_evidence,
+                        after_evidence,
+                    )),
+                    (Some(value), None) => changes.push(make_change(
+                        surface,
+                        observation_id,
+                        &child_path,
+                        ChangeType::ValueRemoved,
+                        Some(value.clone()),
+                        None,
+                        before_evidence,
+                        after_evidence,
+                    )),
+                    (Some(left), Some(right)) => diff_value(
+                        surface,
+                        observation_id,
+                        &child_path,
+                        left,
+                        right,
+                        before_evidence,
+                        after_evidence,
+                        changes,
+                    ),
                     _ => unreachable!(),
                 }
             }
         }
         (Value::Array(left), Value::Array(right)) => {
-            if let (Some(left_by_id), Some(right_by_id)) = (array_objects_by_id(left), array_objects_by_id(right)) {
-                let ids: BTreeSet<&str> = left_by_id.keys().chain(right_by_id.keys()).copied().collect();
+            if let (Some(left_by_id), Some(right_by_id)) =
+                (array_objects_by_id(left), array_objects_by_id(right))
+            {
+                let ids: BTreeSet<&str> = left_by_id
+                    .keys()
+                    .chain(right_by_id.keys())
+                    .copied()
+                    .collect();
                 for id in ids {
-                    let child_path = format!("{}/{}", if path.is_empty() { "" } else { path }, escape_pointer(id));
+                    let child_path = format!(
+                        "{}/{}",
+                        if path.is_empty() { "" } else { path },
+                        escape_pointer(id)
+                    );
                     match (left_by_id.get(id), right_by_id.get(id)) {
-                        (None, Some(value)) => changes.push(make_change(surface, observation_id, &child_path, ChangeType::ValueAdded, None, Some((**value).clone()), before_evidence, after_evidence)),
-                        (Some(value), None) => changes.push(make_change(surface, observation_id, &child_path, ChangeType::ValueRemoved, Some((**value).clone()), None, before_evidence, after_evidence)),
-                        (Some(left), Some(right)) => diff_value(surface, observation_id, &child_path, left, right, before_evidence, after_evidence, changes),
+                        (None, Some(value)) => changes.push(make_change(
+                            surface,
+                            observation_id,
+                            &child_path,
+                            ChangeType::ValueAdded,
+                            None,
+                            Some((**value).clone()),
+                            before_evidence,
+                            after_evidence,
+                        )),
+                        (Some(value), None) => changes.push(make_change(
+                            surface,
+                            observation_id,
+                            &child_path,
+                            ChangeType::ValueRemoved,
+                            Some((**value).clone()),
+                            None,
+                            before_evidence,
+                            after_evidence,
+                        )),
+                        (Some(left), Some(right)) => diff_value(
+                            surface,
+                            observation_id,
+                            &child_path,
+                            left,
+                            right,
+                            before_evidence,
+                            after_evidence,
+                            changes,
+                        ),
                         _ => unreachable!(),
                     }
                 }
             } else {
-                changes.push(make_change(surface, observation_id, if path.is_empty() { "/" } else { path }, ChangeType::ArrayChanged, Some(before.clone()), Some(after.clone()), before_evidence, after_evidence));
+                changes.push(make_change(
+                    surface,
+                    observation_id,
+                    if path.is_empty() { "/" } else { path },
+                    ChangeType::ArrayChanged,
+                    Some(before.clone()),
+                    Some(after.clone()),
+                    before_evidence,
+                    after_evidence,
+                ));
             }
         }
-        _ => changes.push(make_change(surface, observation_id, if path.is_empty() { "/" } else { path }, ChangeType::ValueChanged, Some(before.clone()), Some(after.clone()), before_evidence, after_evidence)),
+        _ => changes.push(make_change(
+            surface,
+            observation_id,
+            if path.is_empty() { "/" } else { path },
+            ChangeType::ValueChanged,
+            Some(before.clone()),
+            Some(after.clone()),
+            before_evidence,
+            after_evidence,
+        )),
     }
 }
 
 fn array_objects_by_id(items: &[Value]) -> Option<BTreeMap<&str, &Value>> {
-    if items.is_empty() { return None; }
+    if items.is_empty() {
+        return None;
+    }
     let mut result = BTreeMap::new();
     for item in items {
         let id = item.as_object()?.get("id")?.as_str()?;
-        if result.insert(id, item).is_some() { return None; }
+        if result.insert(id, item).is_some() {
+            return None;
+        }
     }
     Some(result)
 }
@@ -145,7 +269,13 @@ fn make_change(
     before_evidence: &[String],
     after_evidence: &[String],
 ) -> Change {
-    let seed = format!("{}|{}|{}|{:?}", surface.as_str(), observation_id, path, change_type);
+    let seed = format!(
+        "{}|{}|{}|{:?}",
+        surface.as_str(),
+        observation_id,
+        path,
+        change_type
+    );
     let digest = Sha256::digest(seed.as_bytes());
     let mut evidence: BTreeSet<String> = before_evidence.iter().cloned().collect();
     evidence.extend(after_evidence.iter().cloned());
@@ -164,7 +294,9 @@ fn make_change(
     }
 }
 
-fn escape_pointer(value: &str) -> String { value.replace('~', "~0").replace('/', "~1") }
+fn escape_pointer(value: &str) -> String {
+    value.replace('~', "~0").replace('/', "~1")
+}
 
 #[cfg(test)]
 mod tests {
@@ -175,12 +307,20 @@ mod tests {
     fn keyed_arrays_diff_by_stable_item_id() {
         let mut changes = Vec::new();
         diff_value(
-            Surface::Accessibility, "checkout", "/controls",
+            Surface::Accessibility,
+            "checkout",
+            "/controls",
             &json!([{"id":"pay","role":"button","keyboardFocusable":true}]),
             &json!([{"id":"pay","role":"generic","keyboardFocusable":false}]),
-            &[], &[], &mut changes,
+            &[],
+            &[],
+            &mut changes,
         );
-        assert!(changes.iter().any(|change| change.path == "/controls/pay/role"));
-        assert!(changes.iter().any(|change| change.path == "/controls/pay/keyboardFocusable"));
+        assert!(changes
+            .iter()
+            .any(|change| change.path == "/controls/pay/role"));
+        assert!(changes
+            .iter()
+            .any(|change| change.path == "/controls/pay/keyboardFocusable"));
     }
 }

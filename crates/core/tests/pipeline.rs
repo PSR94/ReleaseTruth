@@ -40,9 +40,17 @@ fn snapshot(release: &str, api_status: i64, cli_exit: i64, role: &str, p95: f64)
 
 #[test]
 fn end_to_end_pipeline_classifies_known_regressions() {
-    let mut base = normalize_snapshot(&snapshot("v1-good", 400, 0, "button", 281.0), &NormalizationConfig::default()).unwrap();
+    let mut base = normalize_snapshot(
+        &snapshot("v1-good", 400, 0, "button", 281.0),
+        &NormalizationConfig::default(),
+    )
+    .unwrap();
     base.fingerprint = fingerprint_snapshot(&base).unwrap();
-    let mut candidate = normalize_snapshot(&snapshot("v2-regression", 422, 1, "generic", 472.0), &NormalizationConfig::default()).unwrap();
+    let mut candidate = normalize_snapshot(
+        &snapshot("v2-regression", 422, 1, "generic", 472.0),
+        &NormalizationConfig::default(),
+    )
+    .unwrap();
     candidate.fingerprint = fingerprint_snapshot(&candidate).unwrap();
 
     let mut comparison = compare(&base, &candidate);
@@ -74,11 +82,18 @@ fn end_to_end_pipeline_classifies_known_regressions() {
 
 #[test]
 fn fingerprints_ignore_release_and_capture_time() {
-    let mut left = normalize_snapshot(&snapshot("1.0.0", 200, 0, "button", 100.0), &NormalizationConfig::default()).unwrap();
+    let mut left = normalize_snapshot(
+        &snapshot("1.0.0", 200, 0, "button", 100.0),
+        &NormalizationConfig::default(),
+    )
+    .unwrap();
     let mut right = left.clone();
     right.release = Some("1.0.1".into());
     right.captured_at = "2030-01-01T00:00:00Z".into();
     left.fingerprint.clear();
     right.fingerprint.clear();
-    assert_eq!(fingerprint_snapshot(&left).unwrap(), fingerprint_snapshot(&right).unwrap());
+    assert_eq!(
+        fingerprint_snapshot(&left).unwrap(),
+        fingerprint_snapshot(&right).unwrap()
+    );
 }

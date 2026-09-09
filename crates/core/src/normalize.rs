@@ -98,12 +98,15 @@ pub fn normalize_snapshot(
 pub fn default_rules() -> Vec<NormalizationRule> {
     vec![
         NormalizationRule::ReplaceRegex {
-            pattern: r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b".to_owned(),
+            pattern:
+                r"(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b"
+                    .to_owned(),
             replacement: "<UUID>".to_owned(),
             scope: Some("/surfaces".to_owned()),
         },
         NormalizationRule::ReplaceRegex {
-            pattern: r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})\b".to_owned(),
+            pattern: r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})\b"
+                .to_owned(),
             replacement: "<TIMESTAMP>".to_owned(),
             scope: Some("/surfaces".to_owned()),
         },
@@ -192,7 +195,11 @@ fn remove_pointer(root: &mut Value, path: &str) -> Result<(), NormalizationError
     let (parent_path, token) = path
         .rsplit_once('/')
         .ok_or_else(|| NormalizationError::InvalidPointer(path.to_owned()))?;
-    let parent_path = if parent_path.is_empty() { "" } else { parent_path };
+    let parent_path = if parent_path.is_empty() {
+        ""
+    } else {
+        parent_path
+    };
     let parent = root
         .pointer_mut(parent_path)
         .ok_or_else(|| NormalizationError::MissingPath(path.to_owned()))?;
