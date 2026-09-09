@@ -15,6 +15,22 @@ export type Project = {
   created_at: string;
 };
 
+export type Snapshot = {
+  id: string;
+  project_id: string;
+  release: string | null;
+  fingerprint: string;
+  captured_at: string | null;
+  created_at: string;
+};
+
+export type Baseline = {
+  project_id: string;
+  snapshot_id: string;
+  set_by: string | null;
+  updated_at: string;
+};
+
 export type Run = {
   id: string;
   project_id: string;
@@ -98,6 +114,22 @@ export async function getRun(id: string): Promise<Run | null> {
 export async function getProject(id: string): Promise<Project | null> {
   try {
     return await get<Project>(`/v1/projects/${encodeURIComponent(id)}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function getSnapshots(projectId: string): Promise<Snapshot[]> {
+  try {
+    return await get<Snapshot[]>(`/v1/projects/${encodeURIComponent(projectId)}/snapshots`);
+  } catch {
+    return [];
+  }
+}
+
+export async function getBaseline(projectId: string): Promise<Baseline | null> {
+  try {
+    return await get<Baseline>(`/v1/projects/${encodeURIComponent(projectId)}/baseline`);
   } catch {
     return null;
   }
