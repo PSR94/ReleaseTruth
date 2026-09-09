@@ -8,7 +8,9 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite+pysqlite:///./.releasetruth/releasetruth.db"
     cors_origins: str = "http://localhost:3002,http://127.0.0.1:3002"
+    github_webhook_enabled: bool = False
     github_webhook_secret: str | None = None
+    github_webhook_allow_unsigned_dev: bool = False
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -16,6 +18,5 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-
 def get_settings() -> Settings:
     return Settings()

@@ -54,6 +54,20 @@ jobs:
     name: FastAPI checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: releasetruth
+          POSTGRES_USER: releasetruth
+          POSTGRES_PASSWORD: releasetruth
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U releasetruth -d releasetruth"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
@@ -64,6 +78,11 @@ jobs:
       - run: pip install -e 'apps/api[dev]'
       - name: Ruff
         run: ruff check apps/api
+      - name: PostgreSQL migration smoke
+        working-directory: apps/api
+        env:
+          RELEASETRUTH_DATABASE_URL: postgresql+psycopg://releasetruth:releasetruth@127.0.0.1:5432/releasetruth
+        run: alembic upgrade head && alembic downgrade base && alembic upgrade head
       - name: Pytest
         run: pytest -q apps/api
 

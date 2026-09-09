@@ -27,10 +27,15 @@ from .schemas import (
 )
 from .services import ensure_snapshot, persist_run, require_project
 
+settings = get_settings()
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    Base.metadata.create_all(bind=engine)
+    # SQLite is the zero-setup local/demo mode. PostgreSQL deployments are migrated
+    # explicitly with Alembic before the application process starts.
+    if settings.database_url.startswith("sqlite"):
+        Base.metadata.create_all(bind=engine)
     yield
 
 
@@ -40,7 +45,6 @@ app = FastAPI(
     description="Persistence, history, baseline and integration API for behavioral release evidence.",
     lifespan=lifespan,
 )
-settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -194,9 +198,13 @@ def summary(db: Session = Depends(get_db)) -> SummaryOut:
 
 
 def verify_github_signature(body: bytes, signature: str | None) -> None:
+    if not settings.github_webhook_enabled:
+        raise HTTPException(status_code=404, detail="GitHub webhook ingestion is disabled")
     secret = settings.github_webhook_secret
     if not secret:
-        return
+        if settings.github_webhook_allow_unsigned_dev:
+            return
+        raise HTTPException(status_code=503, detail="GitHub webhook secret is required when ingestion is enabled")
     if not signature or not signature.startswith("sha256="):
         raise HTTPException(status_code=401, detail="missing GitHub webhook signature")
     expected = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
