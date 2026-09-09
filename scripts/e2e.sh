@@ -31,16 +31,4 @@ RELEASETRUTH_API_URL=http://127.0.0.1:8000 pnpm --filter @releasetruth/dashboard
 DASH_PID=$!
 wait_http http://127.0.0.1:3002
 
-node <<'NODE'
-const summary = await fetch('http://127.0.0.1:8000/v1/summary').then(r => r.json());
-if (summary.runs < 1 || summary.snapshots < 2 || summary.breaking_changes < 1) {
-  throw new Error(`unexpected persisted summary: ${JSON.stringify(summary)}`);
-}
-const runs = await fetch('http://127.0.0.1:8000/v1/runs').then(r => r.json());
-if (!runs[0]?.id) throw new Error('no persisted run id');
-const html = await fetch(`http://127.0.0.1:3002/runs/${runs[0].id}`).then(r => r.text());
-if (!html.includes('Behavior changes') || !html.includes('ReleaseTruth')) {
-  throw new Error('dashboard run page did not render persisted evidence');
-}
-console.log(`E2E verified run ${runs[0].id}; score=${runs[0].compatibility_score}; status=${runs[0].status}`);
-NODE
+RELEASETRUTH_API_URL=http://127.0.0.1:8000 RELEASETRUTH_DASHBOARD_URL=http://127.0.0.1:3002 node scripts/verify-e2e.mjs

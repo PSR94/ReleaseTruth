@@ -17,10 +17,10 @@ need pnpm
 
 printf '==> Building ReleaseTruth, dashboard packages, and TruthShop\n'
 cargo build --locked --workspace
-pnpm install --no-frozen-lockfile
+pnpm install --frozen-lockfile
 pnpm build:ts
 pnpm --filter @releasetruth/truthshop build
-pnpm exec playwright install chromium >/dev/null
+pnpm --filter @releasetruth/browser-adapter exec playwright install chromium >/dev/null
 
 printf '==> Starting TruthShop base and candidate\n'
 TRUTHSHOP_VARIANT=good pnpm --filter @releasetruth/truthshop exec next start -H 127.0.0.1 -p 3000 >"$OUT/truthshop-base.log" 2>&1 &
@@ -52,6 +52,9 @@ capture_variant() {
 
 printf '==> Capturing base behavior\n'
 capture_variant good v1-good "$BASE_URL" "$OUT/base"
+printf '==> Replaying base draft to verify deterministic finalization\n'
+rm -rf "$OUT/base-replay"
+cargo run -q --locked -p releasetruth -- capture --input "$OUT/base/draft.behavior.lock.json" --output "$OUT/base-replay" --config "$ROOT/.releasetruth.demo.yml"
 printf '==> Capturing candidate behavior\n'
 capture_variant regression v2-regression "$CANDIDATE_URL" "$OUT/candidate"
 

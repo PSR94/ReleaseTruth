@@ -78,7 +78,7 @@ jobs:
 
   e2e:
     name: Behavioral capture to dashboard E2E
-    needs: [rust, node, python]
+    needs: [rust, node, python, containers]
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -103,7 +103,7 @@ jobs:
       - run: pip install -e 'apps/api[dev]'
       - run: pnpm install --frozen-lockfile
       - name: Install Chromium runtime
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm --filter @releasetruth/browser-adapter exec playwright install --with-deps chromium
       - name: Run full platform E2E
         run: ./scripts/e2e.sh
       - name: Upload demo evidence
