@@ -32,11 +32,15 @@ describe('EventCollector', () => {
     });
 
     const observation = collector.observation('checkout-events');
-    expect(observation.attributes.order).toEqual([
+    const attributes = observation.attributes as {
+      order: string[];
+      events: Array<Record<string, unknown>>;
+    };
+    expect(attributes.order).toEqual([
       'payment.completed',
       'invoice.generated',
     ]);
-    expect(observation.attributes.events).toEqual([
+    expect(attributes.events).toEqual([
       expect.objectContaining({
         id: 'event-1',
         sequence: 1,
