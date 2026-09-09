@@ -21,7 +21,7 @@ jobs:
         run: cargo +1.98.1 generate-lockfile
       - name: Commit lockfile
         run: |
-          if git diff --quiet -- Cargo.lock; then
+          if [[ -z "$(git status --porcelain -- Cargo.lock)" ]]; then
             echo "Cargo.lock already current."
             exit 0
           fi
