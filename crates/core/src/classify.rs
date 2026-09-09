@@ -137,11 +137,11 @@ fn classify_accessibility(change: &Change) -> (Severity, &'static str) {
 
 fn classify_cli(change: &Change) -> (Severity, &'static str) {
     let path = change.path.to_ascii_lowercase();
-    if path.ends_with("/exitcode") || path.ends_with("/exit_code") {
-        if as_i64(&change.before) == Some(0) && as_i64(&change.after).is_some_and(|code| code != 0)
-        {
-            return (Severity::Breaking, "CLI success exit code became non-zero");
-        }
+    if (path.ends_with("/exitcode") || path.ends_with("/exit_code"))
+        && as_i64(&change.before) == Some(0)
+        && as_i64(&change.after).is_some_and(|code| code != 0)
+    {
+        return (Severity::Breaking, "CLI success exit code became non-zero");
     }
     if matches!(change.change_type, ChangeType::ObservationRemoved) {
         return (Severity::Breaking, "previous CLI scenario disappeared");
