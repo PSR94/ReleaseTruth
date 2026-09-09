@@ -11,7 +11,9 @@ use std::{
 use anyhow::{bail, Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use config::{AppConfig, DEFAULT_CONFIG};
-use history::{find_change_origin, first_regression, load_baseline, load_history, record_capture, set_baseline};
+use history::{
+    find_change_origin, first_regression, load_baseline, load_history, record_capture, set_baseline,
+};
 use releasetruth_core::{
     classify_changes, compare, fingerprint_snapshot, load_behavior_lock, normalize_snapshot,
     score_comparison, verify_fingerprint, BehaviorLock, Severity, SUPPORTED_SCHEMA,
@@ -414,7 +416,12 @@ fn history_command(args: HistoryArgs, quiet: bool) -> Result<ExitCode> {
 
 fn blame(args: BlameArgs) -> Result<ExitCode> {
     let config = AppConfig::load(&args.config)?;
-    match find_change_origin(&args.base, &args.history, &args.change_id, &config.classification)? {
+    match find_change_origin(
+        &args.base,
+        &args.history,
+        &args.change_id,
+        &config.classification,
+    )? {
         Some(record) => {
             println!(
                 "{}\t{}\t{}\t{}",
@@ -425,7 +432,10 @@ fn blame(args: BlameArgs) -> Result<ExitCode> {
             );
             Ok(ExitCode::SUCCESS)
         }
-        None => bail!("change `{}` was not found in recorded history", args.change_id),
+        None => bail!(
+            "change `{}` was not found in recorded history",
+            args.change_id
+        ),
     }
 }
 

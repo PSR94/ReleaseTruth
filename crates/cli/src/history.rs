@@ -1,4 +1,7 @@
-use std::{fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{bail, Context, Result};
 use chrono::Utc;
@@ -75,8 +78,8 @@ pub fn set_baseline(lock_path: &Path, baseline_path: &Path) -> Result<BaselineRe
 }
 
 pub fn load_baseline(path: &Path) -> Result<BaselineRecord> {
-    let bytes = fs::read(path)
-        .with_context(|| format!("failed to read baseline `{}`", path.display()))?;
+    let bytes =
+        fs::read(path).with_context(|| format!("failed to read baseline `{}`", path.display()))?;
     serde_json::from_slice(&bytes)
         .with_context(|| format!("baseline `{}` is invalid JSON", path.display()))
 }
@@ -85,8 +88,8 @@ pub fn load_history(path: &Path) -> Result<HistoryLog> {
     if !path.exists() {
         return Ok(HistoryLog::default());
     }
-    let bytes = fs::read(path)
-        .with_context(|| format!("failed to read history `{}`", path.display()))?;
+    let bytes =
+        fs::read(path).with_context(|| format!("failed to read history `{}`", path.display()))?;
     serde_json::from_slice(&bytes)
         .with_context(|| format!("history `{}` is invalid JSON", path.display()))
 }
@@ -109,7 +112,11 @@ pub fn find_change_origin(
         })?;
         let mut comparison = compare(&base, &candidate);
         classify_changes(&mut comparison.changes, config);
-        if comparison.changes.iter().any(|change| change.id == change_id) {
+        if comparison
+            .changes
+            .iter()
+            .any(|change| change.id == change_id)
+        {
             return Ok(Some(record));
         }
     }
