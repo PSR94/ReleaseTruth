@@ -1,7 +1,7 @@
 FROM node:22-alpine AS deps
 WORKDIR /workspace
 RUN corepack enable
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
 COPY apps/dashboard/package.json apps/dashboard/package.json
 RUN pnpm install --frozen-lockfile --filter @releasetruth/dashboard...
 
@@ -10,7 +10,7 @@ WORKDIR /workspace
 RUN corepack enable
 COPY --from=deps /workspace/node_modules ./node_modules
 COPY --from=deps /workspace/apps/dashboard/node_modules ./apps/dashboard/node_modules
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
 COPY apps/dashboard ./apps/dashboard
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @releasetruth/dashboard build
