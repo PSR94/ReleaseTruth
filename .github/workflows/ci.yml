@@ -16,9 +16,9 @@ jobs:
   rust:
     name: Rust checks
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -31,3 +31,85 @@ jobs:
         run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - name: Tests
         run: cargo test --locked --workspace
+
+  node:
+    name: TypeScript and Next.js checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck, tests, and builds
+        run: pnpm check:ts
+
+  python:
+    name: FastAPI checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - run: pip install -e 'apps/api[dev]'
+      - name: Ruff
+        run: ruff check apps/api
+      - name: Pytest
+        run: pytest -q apps/api
+
+  containers:
+    name: Container build smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build platform images
+        run: docker compose build api dashboard truthshop-good truthshop-regression
+
+  e2e:
+    name: Behavioral capture to dashboard E2E
+    needs: [rust, node, python]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.1
+      - uses: Swatinem/rust-cache@v2
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - run: pip install -e 'apps/api[dev]'
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium runtime
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run full platform E2E
+        run: ./scripts/e2e.sh
+      - name: Upload demo evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: releasetruth-e2e-evidence
+          path: .releasetruth/
+          if-no-files-found: ignore
