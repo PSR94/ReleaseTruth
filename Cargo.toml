@@ -14,6 +14,7 @@ rust-version = "1.82"
 
 [workspace.dependencies]
 anyhow = "1.0"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 clap = { version = "4.5", features = ["derive"] }
 regex = "1.11"
 schemars = { version = "0.8", features = ["chrono"] }
