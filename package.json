@@ -1,0 +1,22 @@
+{
+  "name": "releasetruth",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:ts": "pnpm -r --if-present build",
+    "lint:ts": "pnpm -r --if-present lint",
+    "test:ts": "pnpm -r --if-present test",
+    "format:ts": "prettier --write \"{apps,adapters,packages}/**/*.{ts,tsx,json,md}\"",
+    "check:ts": "pnpm lint:ts && pnpm test:ts && pnpm build:ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
