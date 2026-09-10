@@ -68,17 +68,10 @@ fn default_penalties_are_deterministic() {
 fn multiple_surface_weights_are_applied_without_ai_or_rounding_noise() {
     let breakdown = score(vec![
         change(Surface::Events, Severity::Significant, "events"),
-        change(
-            Surface::Performance,
-            Severity::Significant,
-            "performance",
-        ),
+        change(Surface::Performance, Severity::Significant, "performance"),
     ]);
     assert_eq!(breakdown.total_penalty, 8.75);
     assert_eq!(breakdown.score, 91.25);
     assert_eq!(breakdown.penalties_by_surface[&Surface::Events], 5.25);
-    assert_eq!(
-        breakdown.penalties_by_surface[&Surface::Performance],
-        3.5
-    );
+    assert_eq!(breakdown.penalties_by_surface[&Surface::Performance], 3.5);
 }
