@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+<title id="title">ReleaseTruth Architecture</title><desc id="desc">Architecture diagram of ReleaseTruth showing entry points, real capture adapters, deterministic Rust core, persistence, reports, dashboard and CI outputs.</desc>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900"><stop stop-color="#07101f"/><stop offset="1" stop-color="#0b1f36"/></linearGradient></defs>
+<rect width="1600" height="900" rx="28" fill="url(#bg)"/>
+<text x="70" y="72" fill="#f8fafc" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="44" font-weight="800">ReleaseTruth Architecture</text>
+<text x="70" y="108" fill="#8fb4ce" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19">Real runtime capture → deterministic behavior contracts → compatibility verdicts → evidence, persistence and CI</text>
+<g font-family="Inter,Segoe UI,Arial,sans-serif">
+  <rect x="55" y="150" width="255" height="610" rx="24" fill="#0a1b2d" stroke="#315470"/><text x="82" y="190" fill="#7dd3fc" font-size="19" font-weight="800">ENTRY POINTS / TARGETS</text>
+  <g transform="translate(80 220)"><rect width="205" height="92" rx="16" fill="#102a42" stroke="#22d3ee"/><text x="18" y="36" fill="#fff" font-size="22" font-weight="700">TruthShop releases</text><text x="18" y="64" fill="#9db8ca" font-size="15">good + regression variants</text></g>
+  <g transform="translate(80 330)"><rect width="205" height="92" rx="16" fill="#102a42" stroke="#22d3ee"/><text x="18" y="36" fill="#fff" font-size="22" font-weight="700">CLI</text><text x="18" y="64" fill="#9db8ca" font-size="15">capture / compare / history</text></g>
+  <g transform="translate(80 440)"><rect width="205" height="92" rx="16" fill="#102a42" stroke="#22d3ee"/><text x="18" y="36" fill="#fff" font-size="22" font-weight="700">GitHub Action</text><text x="18" y="64" fill="#9db8ca" font-size="15">CI compatibility gate</text></g>
+  <g transform="translate(80 550)"><rect width="205" height="92" rx="16" fill="#102a42" stroke="#22d3ee"/><text x="18" y="36" fill="#fff" font-size="22" font-weight="700">YAML config</text><text x="18" y="64" fill="#9db8ca" font-size="15">scenarios + thresholds</text></g>
+
+  <rect x="350" y="150" width="395" height="610" rx="24" fill="#0a1b2d" stroke="#2477a8"/><text x="380" y="190" fill="#7dd3fc" font-size="19" font-weight="800">CAPTURE LAYER</text>
+  <g transform="translate(380 220)"><rect width="335" height="92" rx="16" fill="#102a42" stroke="#22d3ee"/><text x="18" y="34" fill="#fff" font-size="22" font-weight="700">TypeScript runner</text><text x="18" y="62" fill="#9db8ca" font-size="15">orchestrates configured scenarios</text></g>
+  <g transform="translate(380 340)" font-size="17" font-weight="700" fill="#fff">
+    <g><rect width="155" height="82" rx="14" fill="#102a42" stroke="#2585d8"/><text x="18" y="35">API</text><text x="18" y="60" fill="#9db8ca" font-size="13" font-weight="400">HTTP + timing</text></g>
+    <g transform="translate(180)"><rect width="155" height="82" rx="14" fill="#102a42" stroke="#2585d8"/><text x="18" y="35">Browser</text><text x="18" y="60" fill="#9db8ca" font-size="13" font-weight="400">Playwright journeys</text></g>
+    <g transform="translate(0 100)"><rect width="155" height="82" rx="14" fill="#102a42" stroke="#2585d8"/><text x="18" y="35">Accessibility</text><text x="18" y="60" fill="#9db8ca" font-size="13" font-weight="400">semantics + axe</text></g>
+    <g transform="translate(180 100)"><rect width="155" height="82" rx="14" fill="#102a42" stroke="#2585d8"/><text x="18" y="35">CLI</text><text x="18" y="60" fill="#9db8ca" font-size="13" font-weight="400">exit/stdout/fs</text></g>
+    <g transform="translate(0 200)"><rect width="155" height="82" rx="14" fill="#102a42" stroke="#2585d8"/><text x="18" y="35">Events</text><text x="18" y="60" fill="#9db8ca" font-size="13" font-weight="400">webhook sequence</text></g>
+    <g transform="translate(180 200)"><rect width="155" height="82" rx="14" fill="#102a42" stroke="#2585d8"/><text x="18" y="35">Performance</text><text x="18" y="60" fill="#9db8ca" font-size="13" font-weight="400">samples + p95</text></g>
+  </g>
+
+  <rect x="785" y="150" width="405" height="610" rx="24" fill="#0a1b2d" stroke="#22d3ee" stroke-width="2"/><text x="815" y="190" fill="#67e8f9" font-size="19" font-weight="800">DETERMINISTIC RUST CORE</text>
+  <g transform="translate(820 225)" fill="#fff">
+    <g><rect width="335" height="70" rx="14" fill="#0f2940" stroke="#22d3ee"/><text x="20" y="30" font-size="20" font-weight="700">Normalize</text><text x="20" y="52" fill="#9db8ca" font-size="13">remove volatility conservatively</text></g>
+    <path d="M168 76v24" stroke="#22d3ee" stroke-width="3"/>
+    <g transform="translate(0 105)"><rect width="335" height="70" rx="14" fill="#0f2940" stroke="#22d3ee"/><text x="20" y="30" font-size="20" font-weight="700">Canonicalize</text><text x="20" y="52" fill="#9db8ca" font-size="13">stable keys + observation ordering</text></g>
+    <path d="M168 181v24" stroke="#22d3ee" stroke-width="3"/>
+    <g transform="translate(0 210)"><rect width="335" height="70" rx="14" fill="#0f2940" stroke="#22d3ee"/><text x="20" y="30" font-size="20" font-weight="700">Fingerprint + behavior.lock</text><text x="20" y="52" fill="#9db8ca" font-size="13">SHA-256 identity + schema v1</text></g>
+    <path d="M168 286v24" stroke="#22d3ee" stroke-width="3"/>
+    <g transform="translate(0 315)"><rect width="335" height="70" rx="14" fill="#0f2940" stroke="#22d3ee"/><text x="20" y="30" font-size="20" font-weight="700">Diff + classify</text><text x="20" y="52" fill="#9db8ca" font-size="13">stable changes + severity rules</text></g>
+    <path d="M168 391v24" stroke="#22d3ee" stroke-width="3"/>
+    <g transform="translate(0 420)"><rect width="335" height="70" rx="14" fill="#0f2940" stroke="#22d3ee"/><text x="20" y="30" font-size="20" font-weight="700">Compatibility score + gate</text><text x="20" y="52" fill="#9db8ca" font-size="13">weighted deterministic verdict</text></g>
+  </g>
+
+  <rect x="1230" y="150" width="315" height="610" rx="24" fill="#0a1b2d" stroke="#315470"/><text x="1260" y="190" fill="#7dd3fc" font-size="19" font-weight="800">OUTPUTS</text>
+  <g transform="translate(1260 220)"><rect width="255" height="88" rx="15" fill="#102a42" stroke="#34d399"/><text x="18" y="34" fill="#fff" font-size="21" font-weight="700">Reports</text><text x="18" y="62" fill="#9db8ca" font-size="14">text · JSON · MD · JUnit · SARIF · HTML</text></g>
+  <g transform="translate(1260 330)"><rect width="255" height="88" rx="15" fill="#102a42" stroke="#34d399"/><text x="18" y="34" fill="#fff" font-size="21" font-weight="700">FastAPI persistence</text><text x="18" y="62" fill="#9db8ca" font-size="14">projects · snapshots · runs · changes</text></g>
+  <g transform="translate(1260 440)"><rect width="255" height="88" rx="15" fill="#102a42" stroke="#34d399"/><text x="18" y="34" fill="#fff" font-size="21" font-weight="700">SQLite / PostgreSQL</text><text x="18" y="62" fill="#9db8ca" font-size="14">local mode + hosted persistence</text></g>
+  <g transform="translate(1260 550)"><rect width="255" height="88" rx="15" fill="#102a42" stroke="#34d399"/><text x="18" y="34" fill="#fff" font-size="21" font-weight="700">Next.js dashboard</text><text x="18" y="62" fill="#9db8ca" font-size="14">history · score · before/after evidence</text></g>
+
+  <path d="M310 455h40" stroke="#22d3ee" stroke-width="4"/><path d="m342 447 12 8-12 8" fill="none" stroke="#22d3ee" stroke-width="4"/>
+  <path d="M745 455h40" stroke="#22d3ee" stroke-width="4"/><path d="m777 447 12 8-12 8" fill="none" stroke="#22d3ee" stroke-width="4"/>
+  <path d="M1190 455h40" stroke="#22d3ee" stroke-width="4"/><path d="m1222 447 12 8-12 8" fill="none" stroke="#22d3ee" stroke-width="4"/>
+</g>
+<rect x="250" y="803" width="1100" height="52" rx="26" fill="#0c253a" stroke="#1f668c"/><text x="800" y="836" text-anchor="middle" fill="#b8d8ea" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="2">OBSERVABLE BEHAVIOR → DETERMINISTIC EVIDENCE → COMPATIBILITY VERDICT</text>
+</svg>
