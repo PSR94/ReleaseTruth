@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="128" viewBox="0 0 520 128" role="img" aria-labelledby="title desc">
+  <title id="title">ReleaseTruth wordmark</title>
+  <desc id="desc">ReleaseTruth logo and wordmark.</desc>
+  <rect width="520" height="128" rx="24" fill="#070b14"/>
+  <g transform="translate(18 18)">
+    <rect width="92" height="92" rx="21" fill="#101827" stroke="#26354d" stroke-width="2"/>
+    <path d="M18 25h17c12 0 18 6 18 18v7" fill="none" stroke="#7dd3fc" stroke-width="7" stroke-linecap="round"/>
+    <path d="M18 67h17c12 0 18-6 18-18v-7" fill="none" stroke="#8fa0ba" stroke-width="7" stroke-linecap="round"/>
+    <path d="M53 46h21" fill="none" stroke="#5ee6a8" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="53" cy="46" r="6" fill="#101827" stroke="#e8edf8" stroke-width="4"/>
+  </g>
+  <text x="132" y="78" fill="#e8edf8" font-family="Inter, system-ui, sans-serif" font-size="46" font-weight="700" letter-spacing="-1.5">ReleaseTruth</text>
+</svg>

@@ -32,3 +32,23 @@ DASH_PID=$!
 wait_http http://127.0.0.1:3002
 
 RELEASETRUTH_API_URL=http://127.0.0.1:8000 RELEASETRUTH_DASHBOARD_URL=http://127.0.0.1:3002 node scripts/verify-e2e.mjs
+
+RUN_ID="$(python - <<'PY'
+import json
+import urllib.request
+
+with urllib.request.urlopen("http://127.0.0.1:8000/v1/runs") as response:
+    runs = json.load(response)
+if not runs:
+    raise SystemExit("no persisted run available for dashboard screenshot")
+print(runs[0]["id"])
+PY
+)"
+
+printf '==> Capturing real dashboard screenshots\n'
+pnpm --filter @releasetruth/browser-adapter exec playwright screenshot --full-page http://127.0.0.1:3002 "$OUT/dashboard-overview.png"
+pnpm --filter @releasetruth/browser-adapter exec playwright screenshot --full-page "http://127.0.0.1:3002/runs/$RUN_ID" "$OUT/dashboard-run.png"
+test -s "$OUT/dashboard-overview.png"
+test -s "$OUT/dashboard-run.png"
+
+printf '==> E2E complete: %s\n' "$RUN_ID"

@@ -54,7 +54,13 @@ fn arrays_can_be_explicitly_sorted_when_semantically_unordered() {
     );
 }
 
-fn volatile_fixture(captured_at: &str, request_id: &str, callback: &str, csrf: &str, quantity: i64) -> BehaviorLock {
+fn volatile_fixture(
+    captured_at: &str,
+    request_id: &str,
+    callback: &str,
+    csrf: &str,
+    quantity: i64,
+) -> BehaviorLock {
     let mut lock = BehaviorLock::empty(captured_at);
     lock.surfaces.api.push(Observation {
         id: "POST /checkout".into(),

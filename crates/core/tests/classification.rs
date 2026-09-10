@@ -3,7 +3,12 @@ use releasetruth_core::{
 };
 use serde_json::json;
 
-fn change(surface: Surface, path: &str, before: serde_json::Value, after: serde_json::Value) -> Change {
+fn change(
+    surface: Surface,
+    path: &str,
+    before: serde_json::Value,
+    after: serde_json::Value,
+) -> Change {
     Change {
         id: format!("change-{surface}-{path}"),
         surface,
@@ -24,7 +29,12 @@ fn deterministic_classification_covers_release_critical_regressions() {
     let mut changes = vec![
         change(Surface::Api, "/status", json!(200), json!(500)),
         change(Surface::Api, "/status", json!(400), json!(422)),
-        change(Surface::Accessibility, "/controls/pay/role", json!("button"), json!("generic")),
+        change(
+            Surface::Accessibility,
+            "/controls/pay/role",
+            json!("button"),
+            json!("generic"),
+        ),
         change(
             Surface::Accessibility,
             "/controls/pay/keyboardFocusable",
@@ -46,7 +56,10 @@ fn deterministic_classification_covers_release_critical_regressions() {
         "successful HTTP response became non-successful"
     );
     assert_eq!(changes[1].severity, Severity::Breaking);
-    assert_eq!(changes[1].classification_reason, "HTTP status contract changed");
+    assert_eq!(
+        changes[1].classification_reason,
+        "HTTP status contract changed"
+    );
     assert_eq!(changes[2].severity, Severity::Breaking);
     assert_eq!(changes[3].severity, Severity::Breaking);
     assert_eq!(changes[4].severity, Severity::Breaking);
