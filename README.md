@@ -1,194 +1,35 @@
 # ReleaseTruth
 
-> Git shows what code changed. ReleaseTruth shows what your product actually changed.
+![ReleaseTruth — evidence-first behavioral compatibility](./assets/brand/banner.svg)
+
+> **Git shows what code changed. ReleaseTruth shows what your product actually changed.**
 
 [![CI](https://github.com/PSR94/ReleaseTruth/actions/workflows/ci.yml/badge.svg)](https://github.com/PSR94/ReleaseTruth/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![behavior.lock](https://img.shields.io/badge/behavior.lock-v1-7dd3fc.svg)](docs/concepts/behavior-lock.md)
+[![Rust](https://img.shields.io/badge/core-Rust-000000.svg)](crates/core)
+[![Playwright](https://img.shields.io/badge/browser-Playwright-45ba4b.svg)](adapters/browser)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688.svg)](apps/api)
+[![Next.js](https://img.shields.io/badge/dashboard-Next.js-000000.svg)](apps/dashboard)
 
-ReleaseTruth is an open-source, evidence-first behavioral compatibility engine for application releases. It captures what users and integrations can actually observe, normalizes volatile noise, fingerprints the result into a versioned `behavior.lock.json`, compares releases deterministically, classifies regressions, scores compatibility, and emits CI- and human-friendly reports.
+ReleaseTruth is an open-source, **deterministic-first, evidence-first behavioral compatibility engine** for application releases. It captures what users and integrations can actually observe, normalizes volatile noise, fingerprints that behavior into a versioned `behavior.lock.json`, compares releases deterministically, classifies regressions, calculates a compatibility score, and emits both human- and CI-friendly evidence.
 
-ReleaseTruth complements code diffs, API-schema diffs, visual regression tools, and contract tests. Its unit of truth is **observable runtime behavior across surfaces**. AI is optional and downstream; deterministic evidence remains the source of truth.
-
----
-
-## Project handoff — read this first next time
-
-**Handoff date:** September 9, 2026 (America/New_York)  
-**Repository:** `PSR94/ReleaseTruth`  
-**Default branch:** `main`  
-**Last fully validated implementation commit before this README-only handoff update:** `480bbc638c2e0f6e576d6b47a6cf3303a0d241f4`  
-**Authoritative validation:** GitHub Actions CI run **#47** completed successfully on that implementation commit.  
-**Current product version in source:** `0.1.0`  
-**Published GitHub Release:** **none yet**  
-**Open non-main branch:** `dependabot/cargo/sha2-0.11`  
-**Open PR:** **#2 — `chore(deps): bump sha2 from 0.10.9 to 0.11.0`**
-
-### Current status in one sentence
-
-The **v0.1 implementation is complete and end-to-end validated**, including the deterministic Rust core, CLI, all six runtime adapters, TruthShop regression target, FastAPI persistence, PostgreSQL migrations, Next.js dashboard, Docker Compose stack, composite GitHub Action, report formats, and full capture-to-dashboard E2E; **release publication and repository hardening/next-version work remain pending and are intentionally listed below rather than being silently treated as done**.
-
-### What was completed so far
-
-The work completed up to this handoff includes:
-
-- built the Rust deterministic behavioral model and comparison engine;
-- implemented conservative normalization, recursive canonicalization, stable behavioral fingerprints, stable change IDs, deterministic classification, expected-change handling, and weighted scoring;
-- defined `behavior.lock.json` v1 plus JSON schemas and a migration boundary;
-- implemented the `releasetruth` CLI with `init`, `doctor`, `capture`, `compare`, `fingerprint`, `baseline`, `history`, `blame`, and `bisect`;
-- implemented text, JSON, Markdown, JUnit, SARIF, and standalone HTML comparison reports;
-- implemented six real TypeScript capture surfaces: API, browser, accessibility, CLI, events/webhooks, and performance;
-- added deterministic adapter tests and fixed workspace/runtime type/export issues discovered by CI;
-- built the TruthShop demo with a known-good release and an intentional regression release;
-- encoded flagship regressions across all six surfaces and assert them in E2E;
-- built a YAML-driven capture runner and demo configuration;
-- built FastAPI persistence for projects, snapshots, runs, changes, baselines, summary data, and GitHub deliveries;
-- added SQLite zero-setup local mode and PostgreSQL deployment mode;
-- added Alembic migrations and a CI upgrade → downgrade → upgrade migration smoke test;
-- hardened GitHub webhook ingestion so it is disabled by default, requires HMAC verification when enabled for production, and handles duplicate delivery IDs idempotently;
-- built a Next.js dashboard for project timelines, compatibility scores, baseline context, and before/after change exploration;
-- fixed the dashboard/API zero-score bug so a legitimate `0.0` compatibility average remains `0.0` instead of being replaced by a fallback `100.0`;
-- added an E2E assertion that the dashboard overview renders the persisted score correctly;
-- added Dockerfiles and Docker Compose for PostgreSQL, API, dashboard, TruthShop good, and TruthShop regression services;
-- added a composite GitHub Action that compares behavior locks, writes reports, emits outputs, and gates on configured severity;
-- added composite Action smoke coverage in CI;
-- added a full CI matrix for Rust, TypeScript/Next.js, FastAPI, PostgreSQL migrations, containers, the composite Action, and behavioral E2E;
-- fixed Playwright/Chromium installation so browser capture works from the correct workspace;
-- added deterministic replay verification: re-finalizing identical normalized behavior must reproduce the same fingerprint;
-- added E2E evidence upload including hidden `.releasetruth` content;
-- added real dashboard screenshot capture to E2E evidence;
-- added cross-platform tag release automation for Linux, macOS, and Windows CLI archives plus SHA-256 checksums;
-- added project architecture, API, CLI, deployment, GitHub Actions, security/trust-model, testing, prior-art, release-checklist, changelog, roadmap, and brand documentation;
-- replaced the original placeholder README with a product-level guide and this durable project handoff.
-
-### Last validated end-to-end behavior
-
-The final validated implementation checkpoint proved the complete path:
-
-```text
-TruthShop good + regression targets
-        ↓
-TypeScript runner + six adapters
-        ↓
-draft observations + evidence
-        ↓
-Rust normalization + canonicalization
-        ↓
-behavior.lock.json + SHA-256 fingerprint
-        ↓
-deterministic compare + classify + score
-        ↓
-text / JSON / Markdown / JUnit / SARIF / HTML reports
-        ↓
-FastAPI persistence + SQLite/PostgreSQL
-        ↓
-Next.js dashboard
-        ↓
-real dashboard screenshots + CI evidence artifact
-```
-
-The E2E specifically asserts these flagship regressions:
-
-| Surface | Expected regression | Expected classification |
-| --- | --- | --- |
-| API | invalid order HTTP status `400 → 422` | breaking |
-| Browser | destructive checkout confirmation removed | breaking |
-| Accessibility | Pay control `button → generic` | breaking |
-| Accessibility | Pay control loses keyboard focusability | breaking |
-| CLI | receipt command exit `0 → 1` | breaking |
-| Events | checkout webhook order reversed | significant |
-| Performance | search p95 increases beyond configured 50% threshold | significant |
-
-It also verifies that every one of the six surfaces produces real observations, reports are non-empty and structurally valid, comparison data persists through the API, the dashboard renders representative changes, and identical base behavior re-finalizes to the same fingerprint.
-
-### Next-session starting instructions
-
-**Do not start by re-reading the entire repository.** Start here:
-
-1. Read this **Project handoff** section and the **TODO / pending work** section below.
-2. Check `main` HEAD and the latest CI result because this README update itself triggers a docs-only CI run.
-3. Check PR **#2** and the Dependabot branch before release work.
-4. Work the TODO list from **P0 → P1 → P2**.
-5. Only re-audit already completed subsystems when a current test, CI failure, security concern, or dependency change gives a concrete reason.
-
-Suggested next-session instruction:
-
-```text
-@GitHub Open PSR94/ReleaseTruth. Read the root README Project handoff and TODO sections first. Continue from the highest-priority unchecked TODO item. Do not re-audit completed areas unless current CI or the dependency update exposes a failure.
-```
-
----
-
-## TODO / pending work
-
-This is the authoritative continuation list as of **September 9, 2026**. Items here are intentionally **not** claimed as complete.
-
-### P0 — finish v0.1 release/publication
-
-- [ ] **Confirm the CI run triggered by this README-only handoff commit is green.** The underlying implementation was already fully green in CI run #47 at `480bbc638c2e0f6e576d6b47a6cf3303a0d241f4`, but the release should still be tagged from an exact green HEAD that contains final docs.
-- [ ] **Review Dependabot PR #2 (`sha2 0.10.9 → 0.11.0`).** Either merge it after confirming compatibility and full CI, or close/defer it. Do not silently publish while an intended dependency update is unresolved.
-- [ ] **If PR #2 is merged, rerun the entire required CI/E2E matrix and release only from that new green commit.**
-- [ ] **Configure branch protection/rulesets for `main`.** At this handoff GitHub reports `main` as unprotected. Require the important CI checks before merge/push according to the desired repository policy.
-- [ ] **Publish the first `v0.1.0` GitHub Release only after the exact final HEAD is green.** There is currently no published GitHub Release.
-- [ ] **Validate the tag workflow on the real `v0.1.0` tag.** Confirm Linux, macOS, and Windows CLI archives are created and their SHA-256 checksum files are correct.
-- [ ] **Confirm the release notes/changelog match the tagged commit** and do not describe unshipped roadmap functionality.
-- [ ] **Verify GitHub repository metadata before public launch:** description, topics, homepage/project URL if desired, and the displayed license metadata. The repository contains an Apache-2.0 `LICENSE`, but GitHub repository metadata should be checked to ensure it is recognized as intended.
-- [ ] **Decide whether container images should also be published to a registry.** Current Docker support builds/runs locally and in CI; registry publication is not part of the current v0.1 release path.
-- [ ] **Decide whether the Rust CLI should be published to crates.io and whether JavaScript packages should be published.** Current supported path is source build/install plus GitHub release archives; package-registry publication is not yet documented as completed.
-- [ ] **Perform one final human README-link/release-artifact check after tagging.** Automation verifies runtime behavior; public release presentation still benefits from a brief manual sign-off.
-
-### P1 — v0.2 candidates
-
-- [ ] Native GitHub App installation/onboarding instead of only the current composite Action + webhook endpoint.
-- [ ] Richer pull-request annotations and review UX.
-- [ ] Remote evidence/object storage with retention controls rather than keeping all evidence in local/CI filesystem paths.
-- [ ] Authenticated multi-user projects, authorization boundaries, session management, and production deployment hardening.
-- [ ] Richer source/commit correlation and behavioral coverage analytics.
-- [ ] Adapter SDK and a supported external adapter/plugin lifecycle.
-- [ ] GraphQL behavioral adapter.
-- [ ] gRPC behavioral adapter.
-- [ ] Database behavioral adapter.
-- [ ] Distributed capture workers for stronger isolation and scalable browser/CLI execution.
-- [ ] Improve release/history correlation across branches, pull requests, and deployment environments.
-- [ ] Add configurable evidence retention/deletion policies and storage quotas.
-- [ ] Add production observability for the API/dashboard stack: structured logs, metrics, health/readiness details, and alerting guidance.
-- [ ] Add explicit API authentication/rate-limit guidance before exposing the service to the public internet.
-- [ ] Add backup/restore and migration rollback operational documentation for hosted PostgreSQL deployments.
-- [ ] Add more fixtures for large behavior locks, pathological nested diffs, performance-noise boundaries, and migration compatibility.
-- [ ] Add additional browser/runtime matrix coverage when needed (for example Firefox/WebKit), while keeping deterministic semantics stable.
-- [ ] Decide whether screenshot evidence should remain evidence-only or gain a dedicated visual/pixel-diff compatibility surface. ReleaseTruth v0.1 is not a general-purpose pixel-diff engine.
-
-### P2 — later roadmap
-
-- [ ] GitLab integration and additional CI-provider integrations.
-- [ ] Mobile/device behavioral surfaces.
-- [ ] Hosted execution/control plane.
-- [ ] Adapter marketplace/discovery.
-- [ ] Optional AI explanation providers that remain downstream of deterministic evidence and never determine the compatibility verdict.
-- [ ] Additional hosted collaboration workflows after authentication, storage, isolation, and operational hardening are mature.
-
-### Known boundaries to remember before future work
-
-- The deterministic engine is the verdict source; do not make AI-generated interpretation part of fingerprinting, classification, or pass/fail behavior.
-- Ordered arrays remain ordered unless configuration explicitly says they are semantically unordered.
-- Default normalization removes known volatile data conservatively; it must not erase meaningful host/behavior differences simply to make tests pass.
-- Browser screenshots are captured as evidence, not currently treated as a standalone pixel-diff engine.
-- Performance evidence is environment-sensitive; thresholds and controlled runners matter.
-- API/browser adapters redact fields they know are sensitive, but capture configuration and new adapters still require security review.
-- CLI execution uses `shell: false` by default and temporary directories, but ReleaseTruth is **not** a secure sandbox for hostile binaries/configurations.
-- The API has no completed production multi-user authentication layer yet; use trusted-network/reverse-proxy controls if deploying beyond local/internal environments.
-- GitHub webhook ingestion is disabled by default and should require a secret when enabled outside explicit dev mode.
-- SQLite is the zero-setup local/demo path; PostgreSQL + Alembic is the intended composed/hosted persistence path.
-- `behavior.lock` schema v1 is the current contract. Future schema versions should use explicit migration logic instead of silently changing v1 semantics.
+ReleaseTruth complements source diffs, API-schema diffs, unit/integration tests, accessibility checks, browser automation, CLI snapshots, and performance tests. Its unit of truth is **observable runtime behavior across surfaces**. AI may be added later for explanation, but it is deliberately downstream of deterministic evidence and must never decide the compatibility verdict.
 
 ---
 
 ## Table of contents
 
-- [Project handoff — read this first next time](#project-handoff--read-this-first-next-time)
+- [Project handoff — start here next time](#project-handoff--start-here-next-time)
 - [TODO / pending work](#todo--pending-work)
 - [What ReleaseTruth detects](#what-releasetruth-detects)
-- [Architecture](#architecture)
+- [Architecture and flow charts](#architecture-and-flow-charts)
+  - [System architecture](#system-architecture)
+  - [Capture and finalization flow](#capture-and-finalization-flow)
+  - [Comparison and release-gating flow](#comparison-and-release-gating-flow)
+  - [Persistence and dashboard flow](#persistence-and-dashboard-flow)
+  - [Self-hosted deployment topology](#self-hosted-deployment-topology)
+  - [CI and release flow](#ci-and-release-flow)
 - [Quick start](#quick-start)
 - [CLI](#cli)
 - [`behavior.lock.json`](#behaviorlockjson)
@@ -200,93 +41,434 @@ This is the authoritative continuation list as of **September 9, 2026**. Items h
 - [Determinism and trust model](#determinism-and-trust-model)
 - [Validation matrix](#validation-matrix)
 - [Repository map](#repository-map)
+- [Documentation index](#documentation-index)
 - [Design principles](#design-principles)
 - [Prior art and scope](#prior-art-and-scope)
-- [Development](#development)
+- [Development commands](#development-commands)
 - [Release status](#release-status)
-- [Documentation index](#documentation-index)
 - [License](#license)
 
-## What ReleaseTruth detects
+---
 
-| Surface | Examples of captured behavior | Flagship TruthShop regression |
+# Project handoff — start here next time
+
+**Handoff date:** September 9, 2026 (America/New_York)  
+**Repository:** `PSR94/ReleaseTruth`  
+**Default branch:** `main`  
+**Last fully validated implementation commit:** `480bbc638c2e0f6e576d6b47a6cf3303a0d241f4`  
+**Authoritative implementation validation:** GitHub Actions CI run **#47** completed successfully on that commit.  
+**Current product version in source:** `0.1.0`  
+**Published GitHub Release:** **none yet**  
+**Known non-main branch:** `dependabot/cargo/sha2-0.11`  
+**Known open PR:** **#2 — `chore(deps): bump sha2 from 0.10.9 to 0.11.0`**
+
+> This README is the project handoff document. In a new session, read this section and the TODO section first. Do **not** re-audit the whole repository unless current CI, a dependency change, or a specific bug gives a reason.
+
+## Current status in one sentence
+
+The **v0.1 implementation path is complete and end-to-end validated**: deterministic Rust core, CLI, all six capture adapters, TruthShop good/regression targets, report generation, FastAPI persistence, SQLite/PostgreSQL support, Alembic migrations, Next.js dashboard, Docker Compose, composite GitHub Action, full CI, and capture-to-dashboard E2E. **Public release publication and later platform hardening remain pending.**
+
+## What has been completed
+
+- deterministic `behavior.lock` v1 model and JSON schemas;
+- conservative normalization of known volatile values;
+- recursive canonicalization and stable observation ordering;
+- SHA-256 behavioral fingerprinting;
+- stable diff/change IDs;
+- deterministic classification and severity overrides;
+- expected-change acceptance handling;
+- weighted compatibility scoring;
+- explicit schema migration boundary;
+- Rust CLI commands: `init`, `doctor`, `capture`, `compare`, `fingerprint`, `baseline`, `history`, `blame`, and `bisect`;
+- text, JSON, Markdown, JUnit, SARIF, and HTML reports;
+- TypeScript capture runner driven by YAML;
+- real API adapter;
+- real browser/Playwright adapter;
+- real accessibility adapter with semantic capture + axe evidence;
+- real CLI process/filesystem adapter;
+- real events/webhook collector;
+- real performance sampler with p50/p95 summaries;
+- TruthShop good/regression variants with intentional cross-surface regressions;
+- deterministic replay verification for equivalent normalized input;
+- FastAPI project/snapshot/run/change/baseline persistence;
+- SQLite zero-setup local mode;
+- PostgreSQL deployment mode;
+- Alembic migrations and migration smoke tests;
+- hardened GitHub webhook HMAC handling and delivery idempotency;
+- Next.js dashboard with project history, baseline context, score/status, and change filtering;
+- correct handling of a legitimate `0.0` compatibility average through API and dashboard;
+- Dockerfiles and Docker Compose stack;
+- composite GitHub Action and Action smoke test;
+- CI matrix for Rust, TypeScript/Next.js, Python, migrations, containers, Action smoke, and full behavioral E2E;
+- Playwright Chromium installation from the correct workspace;
+- E2E evidence artifact including hidden `.releasetruth` content;
+- real dashboard screenshot capture as CI evidence;
+- cross-platform tag workflow for Linux/macOS/Windows CLI archives and SHA-256 checksums;
+- architecture, CLI, API, deployment, GitHub Actions, testing, security/trust-model, prior-art, release-checklist, changelog, roadmap, and branding documentation;
+- this root README as the durable project continuation/handoff document;
+- a real repository banner SVG at `assets/brand/banner.svg`.
+
+## Last validated end-to-end behavior
+
+The validated implementation proves this full path:
+
+```text
+TruthShop good + regression releases
+        ↓
+TypeScript runner + six real adapters
+        ↓
+raw observations + evidence
+        ↓
+Rust normalization + canonicalization
+        ↓
+behavior.lock.json + SHA-256 fingerprint
+        ↓
+deterministic diff + classification + scoring
+        ↓
+text / JSON / Markdown / JUnit / SARIF / HTML reports
+        ↓
+FastAPI persistence
+        ↓
+SQLite or PostgreSQL
+        ↓
+Next.js dashboard
+        ↓
+real screenshots + CI evidence artifact
+```
+
+The E2E specifically asserts these intended TruthShop regressions:
+
+| Surface | Regression | Classification |
 | --- | --- | --- |
-| API | status, selected headers, body, timing, cookies | invalid order `400 → 422` |
-| Browser | journeys, visible text, DOM signals, dialogs, storage, network, focus | destructive confirmation removed |
-| Accessibility | roles, names, focusability, axe violations | Pay control `button → generic` and loses keyboard focusability |
-| CLI | argv execution, exit code, stdout/stderr, filesystem snapshot | receipt command exit `0 → 1` |
-| Events | webhook/event sequence and stable headers | event order reversed |
-| Performance | repeated timings, min/max/mean/p50/p95 | search p95 regresses beyond configured 50% threshold |
+| API | invalid order status `400 → 422` | breaking |
+| Browser | destructive checkout confirmation dialog removed | breaking |
+| Accessibility | Pay control role `button → generic` | breaking |
+| Accessibility | Pay control loses keyboard focusability | breaking |
+| CLI | receipt command exit `0 → 1` | breaking |
+| Events | checkout webhook ordering reversed | significant |
+| Performance | search p95 exceeds configured 50% regression threshold | significant |
 
-The included TruthShop demo intentionally introduces all six classes of regression so the full pipeline can prove that capture, normalization, diffing, persistence, dashboard rendering, and CI reporting work together.
+The E2E also verifies real observations on **all six surfaces**, non-empty report formats, deterministic replay fingerprint equality, API persistence, representative dashboard changes, persisted global score values, and generated dashboard screenshots.
 
-## Architecture
+## Start the next session like this
+
+```text
+@GitHub Open PSR94/ReleaseTruth. Read only the root README Project handoff and TODO sections first. Continue from the highest-priority unchecked TODO item. Do not re-audit completed subsystems unless the latest CI, the Dependabot PR, or a concrete failure requires it.
+```
+
+---
+
+# TODO / pending work
+
+This is the authoritative continuation list as of **September 9, 2026**. These items are intentionally **not** claimed as completed.
+
+## P0 — finish v0.1 release/publication
+
+- [ ] Confirm CI is green on the final documentation/banner HEAD before tagging.
+- [ ] Review Dependabot PR #2 (`sha2 0.10.9 → 0.11.0`): merge only if compatibility and full CI are green, otherwise defer/close it deliberately.
+- [ ] If PR #2 is merged, rerun the complete required CI/E2E matrix and use only that new green commit for release.
+- [ ] Configure appropriate `main` branch protection/rulesets and required checks.
+- [ ] Publish the first `v0.1.0` GitHub Release only from an exact fully green HEAD.
+- [ ] Validate the actual `v0.1.0` tag workflow and confirm Linux, macOS, and Windows CLI archives.
+- [ ] Verify generated SHA-256 checksums for release archives.
+- [ ] Confirm release notes and `CHANGELOG.md` match the tagged code and do not describe roadmap-only functionality.
+- [ ] Verify repository metadata before public launch: description, topics, homepage URL if wanted, and GitHub-recognized license metadata.
+- [ ] Decide whether container images should be published to a registry.
+- [ ] Decide whether the Rust CLI should also be published to crates.io.
+- [ ] Decide whether JavaScript packages should be published to a registry.
+- [ ] Perform a final human README/link/release-artifact presentation check after tagging.
+
+## P1 — v0.2 candidates
+
+- [ ] Native GitHub App installation/onboarding beyond the current composite Action + webhook endpoint.
+- [ ] Richer pull-request annotations and review UX.
+- [ ] Remote evidence/object storage with retention controls.
+- [ ] Authenticated multi-user projects and authorization boundaries.
+- [ ] Production session/authentication strategy.
+- [ ] Richer source/commit/deployment correlation.
+- [ ] Behavioral coverage analytics.
+- [ ] Adapter SDK and supported external adapter/plugin lifecycle.
+- [ ] GraphQL behavioral adapter.
+- [ ] gRPC behavioral adapter.
+- [ ] Database behavioral adapter.
+- [ ] Distributed/isolated capture workers for browser and CLI execution.
+- [ ] Evidence retention/deletion policies and storage quotas.
+- [ ] Production observability: structured logs, metrics, readiness details, and alerting guidance.
+- [ ] API authentication/rate-limit guidance before public-internet exposure.
+- [ ] PostgreSQL backup/restore operational documentation.
+- [ ] Migration rollback/recovery operational documentation.
+- [ ] Larger/pathological behavior-lock fixtures and migration-compatibility coverage.
+- [ ] Additional browser runtime coverage such as Firefox/WebKit if product requirements justify it.
+- [ ] Decide whether screenshot evidence remains evidence-only or evolves into a dedicated visual compatibility surface.
+
+## P2 — later roadmap
+
+- [ ] GitLab integration.
+- [ ] Additional CI-provider integrations.
+- [ ] Mobile/device behavioral surfaces.
+- [ ] Hosted execution/control plane.
+- [ ] Adapter marketplace/discovery.
+- [ ] Optional AI explanation providers that remain downstream of deterministic evidence and never control the verdict.
+- [ ] Hosted collaboration workflows after authentication, storage, isolation, and operational hardening are mature.
+
+## Boundaries future work must preserve
+
+- The deterministic engine is the verdict source; AI must not participate in fingerprints, classifications, scores, or pass/fail decisions.
+- Ordered arrays stay ordered unless configuration explicitly marks them semantically unordered.
+- Normalization must remove volatility without erasing meaningful behavior.
+- Browser screenshots are evidence in v0.1, not a generic pixel-diff surface.
+- Performance evidence is environment-sensitive and requires controlled runners/thresholds.
+- CLI execution uses `shell: false` by default, but ReleaseTruth is not a security sandbox for hostile binaries.
+- The API does not yet provide a complete production multi-user authentication layer.
+- GitHub webhook ingestion should remain disabled by default and require a secret outside explicit development mode.
+- SQLite is the local/demo path; PostgreSQL + Alembic is the intended composed/hosted path.
+- `behavior.lock` v1 semantics should not be silently changed; use explicit migrations for future versions.
+
+---
+
+# What ReleaseTruth detects
+
+ReleaseTruth currently captures six behavioral surfaces:
+
+| Surface | Captured behavior examples | TruthShop proof regression |
+| --- | --- | --- |
+| **API** | status, selected headers, response body, cookies, timing | invalid order `400 → 422` |
+| **Browser/UI** | journeys, visible text, significant DOM signals, dialogs, storage, network, console, focus, screenshots | destructive confirmation removed |
+| **Accessibility** | semantic controls, role/name, focusability, axe violations | Pay control `button → generic` and loses keyboard focusability |
+| **CLI** | executable/argv, exit code, stdout, stderr, filesystem snapshot | receipt command exit `0 → 1` |
+| **Events/Webhooks** | received event payload metadata and stable event ordering | checkout event order reversed |
+| **Performance** | repeated timing samples, min/max/mean/p50/p95 | search p95 exceeds configured regression threshold |
+
+The TruthShop demo intentionally introduces cross-surface regressions so the entire pipeline proves real capture, deterministic comparison, persistence, and presentation together.
+
+---
+
+# Architecture and flow charts
+
+## System architecture
 
 ```mermaid
 flowchart LR
-  A[Base release] --> R[TypeScript runner]
-  B[Candidate release] --> R
-  R --> AD[Browser / API / A11y / CLI / Events / Perf adapters]
-  AD --> D[Draft observations + evidence]
-  D --> C[Rust deterministic core]
-  C --> N[Normalize + canonicalize]
-  N --> F[SHA-256 behavioral fingerprint]
-  F --> L[behavior.lock.json]
-  L --> X[Compare + classify + score]
-  X --> O[Text / JSON / Markdown / JUnit / SARIF / HTML]
-  X --> P[FastAPI persistence]
-  P --> DB[(SQLite local / PostgreSQL hosted)]
-  P --> W[Next.js dashboard]
-  X --> G[GitHub composite Action]
+  subgraph Targets[Release targets]
+    BASE[Base release]
+    CAND[Candidate release]
+  end
+
+  subgraph Capture[Runtime capture]
+    RUNNER[TypeScript runner]
+    APIA[API adapter]
+    BROW[Browser adapter]
+    A11Y[Accessibility adapter]
+    CLIA[CLI adapter]
+    EVENT[Events adapter]
+    PERF[Performance adapter]
+  end
+
+  subgraph Core[Deterministic Rust core]
+    NORM[Normalize]
+    CANON[Canonicalize]
+    FP[Fingerprint]
+    LOCK[behavior.lock.json]
+    DIFF[Diff]
+    CLASS[Classify]
+    SCORE[Score]
+  end
+
+  subgraph Outputs[Outputs]
+    REPORTS[Text / JSON / Markdown / JUnit / SARIF / HTML]
+    ACTION[GitHub composite Action]
+    SERVICE[FastAPI persistence]
+    DB[(SQLite / PostgreSQL)]
+    DASH[Next.js dashboard]
+  end
+
+  BASE --> RUNNER
+  CAND --> RUNNER
+  RUNNER --> APIA
+  RUNNER --> BROW
+  RUNNER --> A11Y
+  RUNNER --> CLIA
+  RUNNER --> EVENT
+  RUNNER --> PERF
+  APIA --> NORM
+  BROW --> NORM
+  A11Y --> NORM
+  CLIA --> NORM
+  EVENT --> NORM
+  PERF --> NORM
+  NORM --> CANON --> FP --> LOCK
+  LOCK --> DIFF --> CLASS --> SCORE
+  SCORE --> REPORTS
+  SCORE --> ACTION
+  SCORE --> SERVICE --> DB
+  DB --> DASH
 ```
 
-### Component responsibilities
+## Capture and finalization flow
 
-| Component | Responsibility |
-| --- | --- |
-| `crates/core` | deterministic model, normalization, canonicalization, fingerprinting, diffing, classification, acceptance, scoring, migration boundary |
-| `crates/cli` | project initialization, capture finalization, comparison/reporting, fingerprint verification, baseline/history/blame/bisect |
-| `packages/runner` | YAML-driven orchestration of runtime capture scenarios |
-| `adapters/api` | HTTP request/response/timing/cookie evidence with redaction |
-| `adapters/browser` | Playwright journeys, visible text, DOM signals, network, dialogs, storage, focus, screenshots |
-| `adapters/accessibility` | semantic controls/headings/focusability plus axe-based accessibility evidence |
-| `adapters/cli` | process exit/stdout/stderr/filesystem behavior using `shell: false` by default |
-| `adapters/events` | loopback webhook/event collection and stable sequence evidence |
-| `adapters/performance` | repeated timing samples and summary metrics including p50/p95 |
-| `apps/demo-shop` | TruthShop proof target with good/regression runtime variants |
-| `apps/api` | persistence, history, baselines, summary API, GitHub delivery ingestion |
-| `apps/dashboard` | human exploration of compatibility history and changes |
-| `action.yml` | reusable GitHub composite comparison/report/gating action |
-| `docker-compose.yml` | local/self-hosted full stack |
+```mermaid
+flowchart TD
+  START[Load .releasetruth YAML configuration] --> SCENARIOS[Resolve surface scenarios]
+  SCENARIOS --> EXEC[Execute real adapters]
+  EXEC --> OBS[Collect observations]
+  EXEC --> EVID[Write evidence references/artifacts]
+  OBS --> DRAFT[Draft behavior lock]
+  EVID --> DRAFT
+  DRAFT --> DEFAULTS[Apply conservative default normalization]
+  DEFAULTS --> RULES[Apply explicit normalization rules]
+  RULES --> SORT[Canonicalize keys and observation order]
+  SORT --> HASH[SHA-256 behavioral fingerprint]
+  HASH --> LOCK[Write versioned behavior.lock.json]
+  LOCK --> VERIFY{Fingerprint verification}
+  VERIFY -->|valid| DONE[Capture finalized]
+  VERIFY -->|invalid| ERROR[Operational error]
+```
 
-The Rust core owns deterministic finalization and comparison. TypeScript adapters collect runtime evidence. The FastAPI service and Next.js dashboard persist and explore history without changing comparison semantics.
+## Comparison and release-gating flow
 
-See [System architecture](docs/architecture/system.md) and the [architecture decisions](docs/architecture/decisions/).
+```mermaid
+flowchart TD
+  BASE[Base behavior.lock.json] --> VB{Verify fingerprint}
+  CAND[Candidate behavior.lock.json] --> VC{Verify fingerprint}
+  VB -->|valid| DIFF[Stable semantic diff]
+  VC -->|valid| DIFF
+  VB -->|invalid| ERR[Exit 1]
+  VC -->|invalid| ERR
+  DIFF --> CHANGES[Generate stable changes]
+  CHANGES --> CLASS[Deterministic classification]
+  CLASS --> EXPECTED[Apply accepted expected change IDs / severity overrides]
+  EXPECTED --> SCORE[Weighted compatibility score]
+  SCORE --> REPORT[Render report formats]
+  SCORE --> THRESH{Any change reaches --fail-on?}
+  THRESH -->|no| PASS[Exit 0]
+  THRESH -->|yes| FAIL[Exit 2]
+  REPORT --> PERSIST[Optional API persistence]
+```
 
-## Quick start
+## Persistence and dashboard flow
 
-### Prerequisites
+```mermaid
+sequenceDiagram
+  participant Good as TruthShop good
+  participant Bad as TruthShop regression
+  participant Runner as Runner + adapters
+  participant CLI as Rust CLI/core
+  participant API as FastAPI
+  participant DB as SQLite/PostgreSQL
+  participant UI as Next.js dashboard
 
-- Rust **1.98.1** via `rustup` (the repository pins it in `rust-toolchain.toml`)
-- Node.js **20+**; CI uses Node 22
-- pnpm **9.15.4** via Corepack or pnpm
-- Python **3.12+** for the API/platform
-- Chromium for browser capture
-- Docker + Docker Compose for the full self-hosted stack/release check
+  Good->>Runner: capture base runtime behavior
+  Bad->>Runner: capture candidate runtime behavior
+  Runner->>CLI: draft locks + evidence
+  CLI->>CLI: normalize + canonicalize + fingerprint
+  CLI->>CLI: diff + classify + score
+  CLI-->>Runner: reports + final locks
+  Runner->>API: ingest snapshots/run/changes
+  API->>DB: persist project history + baseline data
+  UI->>API: request summary/projects/runs
+  API->>DB: query persisted state
+  DB-->>API: data
+  API-->>UI: compatibility results
+  UI-->>UI: render score, changes, evidence context
+```
 
-Install repository dependencies and Chromium:
+## Self-hosted deployment topology
+
+```mermaid
+flowchart TB
+  USER[Developer / reviewer browser] --> DASH[Dashboard :3002]
+  DASH --> API[ReleaseTruth API :8000]
+  API --> PG[(PostgreSQL :5432)]
+
+  RUNNER[Capture runner / CLI] --> GOOD[TruthShop good :3000]
+  RUNNER --> BAD[TruthShop regression :3001]
+  RUNNER --> API
+
+  GOOD --> EVENTS[Loopback webhook collector]
+  BAD --> EVENTS
+
+  subgraph DockerCompose[Docker Compose]
+    DASH
+    API
+    PG
+    GOOD
+    BAD
+  end
+```
+
+## CI and release flow
+
+```mermaid
+flowchart LR
+  PUSH[Push / Pull Request] --> RUST[Rust fmt + Clippy + tests]
+  PUSH --> NODE[TypeScript + Next.js checks]
+  PUSH --> PY[FastAPI Ruff + pytest + Alembic]
+  PUSH --> CONTAINERS[Docker image builds]
+  PUSH --> ACTION[Composite Action smoke]
+
+  RUST --> E2E[Full behavioral E2E]
+  NODE --> E2E
+  PY --> E2E
+  CONTAINERS --> E2E
+  ACTION --> E2E
+
+  E2E --> EVIDENCE[Upload locks, reports, logs, screenshots]
+  EVIDENCE --> GREEN{All required checks green?}
+  GREEN -->|no| FIX[Fix source; do not release]
+  GREEN -->|yes| TAG[v* tag]
+  TAG --> RELEASEVALID[Re-run release validation]
+  RELEASEVALID --> MATRIX[Build Linux / macOS / Windows CLI archives]
+  MATRIX --> SUMS[Generate SHA-256 checksums]
+  SUMS --> GHREL[GitHub Release]
+```
+
+## Component responsibilities
+
+| Component | Location | Responsibility |
+| --- | --- | --- |
+| Deterministic core | `crates/core` | model, normalization, canonicalization, fingerprint, diff, classification, scoring, migrations |
+| CLI | `crates/cli` | init/doctor/capture/compare/fingerprint plus baseline/history/blame/bisect |
+| Runner | `packages/runner` | load YAML and orchestrate capture scenarios |
+| API adapter | `adapters/api` | HTTP behavior, selected headers/body/cookies/timing/redaction |
+| Browser adapter | `adapters/browser` | Playwright journeys, DOM/text/network/storage/dialog/focus/screenshot evidence |
+| Accessibility adapter | `adapters/accessibility` | semantic roles/names/focusability and axe evidence |
+| CLI adapter | `adapters/cli` | process exit/stdout/stderr/filesystem behavior |
+| Events adapter | `adapters/events` | webhook/event collection and stable ordering |
+| Performance adapter | `adapters/performance` | timing samples and min/max/mean/p50/p95 summaries |
+| TruthShop | `apps/demo-shop` | good/regression proof target |
+| API service | `apps/api` | persistence, history, baselines, summary, GitHub deliveries |
+| Dashboard | `apps/dashboard` | compatibility exploration and change filtering |
+| Schemas | `schemas/behavior/v1` | behavior-lock/change contract schemas |
+| GitHub Action | `action.yml` | reusable compare/report/gate workflow |
+
+See [System architecture](docs/architecture/system.md) and [architecture decisions](docs/architecture/decisions/).
+
+---
+
+# Quick start
+
+## Prerequisites
+
+- Rust **1.98.1** via `rustup` — pinned by `rust-toolchain.toml`;
+- Node.js **20+** — CI uses Node 22;
+- pnpm **9.15.4**;
+- Python **3.12+**;
+- Chromium for browser capture;
+- Docker + Docker Compose for full-stack/self-hosted validation.
+
+Install dependencies and Chromium:
 
 ```bash
 make setup
 ```
 
-### Run the complete behavioral demo
+## Run the complete behavioral demo
 
 ```bash
 make demo
 ```
 
-This builds ReleaseTruth and TruthShop, starts a good release on `127.0.0.1:3000` and a regression release on `127.0.0.1:3001`, captures all six surfaces, replays the base draft to prove deterministic finalization, records local history, sets the base baseline, and writes reports under:
+The demo builds ReleaseTruth and TruthShop, starts the good target on `127.0.0.1:3000` and regression target on `127.0.0.1:3001`, captures all six surfaces, re-finalizes base behavior to prove deterministic fingerprints, records local history, sets the base baseline, and writes:
 
 ```text
 .releasetruth/demo/
@@ -300,25 +482,27 @@ This builds ReleaseTruth and TruthShop, starts a good release on `127.0.0.1:3000
 └── report.html
 ```
 
-Open `.releasetruth/demo/report.html` for the standalone report.
+Open `.releasetruth/demo/report.html` for the standalone HTML comparison report.
 
-### Run the full platform E2E
+## Run the full platform E2E
 
 ```bash
 make e2e
 ```
 
-The E2E starts the API, runs the six-surface TruthShop capture and comparison, persists the run, starts the dashboard, verifies the persisted changes and global summary score, verifies the rendered comparison page, and captures real dashboard screenshots into `.releasetruth/e2e/`.
+The E2E starts the API, captures and compares TruthShop, persists the run, starts the dashboard, verifies persisted changes/global score, verifies dashboard rendering, and captures real dashboard screenshots under `.releasetruth/e2e/`.
 
-For the full release gate—including format/lint/test/build/container/E2E checks—run:
+## Run the complete local release gate
 
 ```bash
 make release-check
 ```
 
-## CLI
+---
 
-Build or install the Rust CLI from source:
+# CLI
+
+Build or install from source:
 
 ```bash
 cargo build --locked --release -p releasetruth
@@ -326,14 +510,14 @@ cargo build --locked --release -p releasetruth
 cargo install --locked --path crates/cli
 ```
 
-Initialize a project and validate configuration:
+Initialize and validate configuration:
 
 ```bash
 releasetruth init
 releasetruth doctor
 ```
 
-Finalize adapter-produced drafts into immutable behavioral contracts:
+Finalize a draft capture:
 
 ```bash
 releasetruth capture \
@@ -343,7 +527,7 @@ releasetruth capture \
   --git-sha "$(git rev-parse HEAD)"
 ```
 
-Compare two releases:
+Compare releases:
 
 ```bash
 releasetruth compare \
@@ -353,7 +537,7 @@ releasetruth compare \
   --fail-on breaking
 ```
 
-Other deterministic lifecycle commands:
+Other lifecycle commands:
 
 ```bash
 releasetruth fingerprint .releasetruth/base/behavior.lock.json --verify
@@ -364,13 +548,15 @@ releasetruth blame .releasetruth/base/behavior.lock.json chg-...
 releasetruth bisect .releasetruth/base/behavior.lock.json --fail-on breaking
 ```
 
-`baseline`, `history`, `blame`, and `bisect` use local provenance in `.releasetruth/` and verify stored fingerprints before trusting recorded snapshots.
+`baseline`, `history`, `blame`, and `bisect` use local provenance under `.releasetruth/` and verify stored fingerprints before trusting historical snapshots.
 
-Full command reference: [CLI quick start](docs/getting-started/cli.md).
+Full CLI guide: [docs/getting-started/cli.md](docs/getting-started/cli.md).
 
-## `behavior.lock.json`
+---
 
-`behavior.lock.json` is the versioned behavioral contract. v1 uses the discriminator:
+# `behavior.lock.json`
+
+`behavior.lock.json` is the versioned behavioral contract. v1 uses:
 
 ```json
 {
@@ -390,17 +576,17 @@ Full command reference: [CLI quick start](docs/getting-started/cli.md).
 }
 ```
 
-The fingerprint covers the schema, normalized surfaces, and normalization manifest. Volatile release labels, capture timestamps, source metadata, evidence storage paths, and the fingerprint field itself are excluded. Observation ordering is canonicalized, object keys are recursively sorted, and arrays retain order unless configuration explicitly declares them unordered.
+The fingerprint covers schema + normalized surfaces + normalization manifest. Volatile release labels, capture timestamps, source metadata, evidence paths, and the fingerprint field itself are excluded. Object keys are recursively sorted; observations are canonicalized; arrays retain order unless configuration explicitly declares them unordered.
 
-### Why this matters
+A behavior lock is intended to be reviewable and versionable like a dependency lockfile, except it represents **observable runtime behavior**, not package resolution.
 
-A behavior lock is intended to be reviewable and versionable like a dependency lockfile, while representing **runtime behavior rather than implementation dependency resolution**. A release can change source code substantially without changing its behavior lock, or keep apparently compatible schemas while changing observable behavior in a breaking way.
+See [behavior-lock concepts](docs/concepts/behavior-lock.md) and [`schemas/behavior/v1/`](schemas/behavior/v1/).
 
-See the [behavior lock specification](docs/concepts/behavior-lock.md) and JSON schemas under [`schemas/behavior/v1/`](schemas/behavior/v1/).
+---
 
-## Configuration
+# Configuration
 
-`releasetruth init` creates `.releasetruth.yml`. The demo configuration shows the current normalization, classification, scoring, and scenario concepts:
+`releasetruth init` creates `.releasetruth.yml`. Current core concepts include:
 
 ```yaml
 normalization:
@@ -427,36 +613,43 @@ scoring:
     performance: 0.5
 ```
 
-Adapter journeys/scenarios are also configured in YAML. See [`.releasetruth.demo.yml`](.releasetruth.demo.yml) for the complete runnable example.
+Adapter journeys/scenarios are configured in YAML as well. See [`.releasetruth.demo.yml`](.releasetruth.demo.yml) for the complete runnable example.
 
-## Reports and exit codes
+---
+
+# Reports and exit codes
 
 `releasetruth compare` supports:
 
-- `text` — terminal summary;
-- `json` — machine-readable comparison and score;
-- `markdown` — PR/CI summary;
-- `junit` — test-report integration;
-- `sarif` — code-scanning compatible output;
-- `html` — standalone evidence report with compatibility score and before/after details.
+| Format | Intended use |
+| --- | --- |
+| `text` | terminal summary |
+| `json` | machine-readable automation |
+| `markdown` | PR/CI summaries |
+| `junit` | test-report systems |
+| `sarif` | code-scanning compatible tooling |
+| `html` | standalone human evidence report |
 
-Exit codes are intentionally CI-friendly:
+Exit semantics:
 
 | Code | Meaning |
 | ---: | --- |
-| `0` | comparison accepted / no change reaches the configured gate |
-| `1` | operational, configuration, schema, or fingerprint error |
-| `2` | a change reached `--fail-on` (`breaking` by default) |
+| `0` | comparison accepted; no change reaches the configured gate |
+| `1` | operational/configuration/schema/fingerprint failure |
+| `2` | a change reaches `--fail-on` |
 
-Use `--fail-on never` when you only want to render reports.
+Use `--fail-on never` to render reports without gating.
 
-## GitHub Actions
+---
 
-This repository ships a composite action at `action.yml`:
+# GitHub Actions
+
+The repository ships a composite action at `action.yml`:
 
 ```yaml
 steps:
   - uses: actions/checkout@v7
+
   - name: Compare release behavior
     uses: PSR94/ReleaseTruth@main
     with:
@@ -467,15 +660,17 @@ steps:
       report-dir: .releasetruth/action
 ```
 
-It renders JSON, Markdown, and SARIF, appends Markdown to the GitHub step summary, exposes report paths as outputs, and enforces the requested compatibility threshold. CI smoke-tests the action against the repository itself.
+It renders JSON, Markdown, and SARIF; appends Markdown to the GitHub step summary; exposes report paths as outputs; and enforces the requested severity threshold. The repository CI smoke-tests this composite Action.
 
-**Production guidance:** pin ReleaseTruth to an immutable released tag or commit SHA rather than `main` once `v0.1.0` is published.
+**Production guidance:** once `v0.1.0` is published, pin the action to an immutable release tag or commit SHA rather than `main`.
 
 See [GitHub Actions integration](docs/integrations/github-actions.md).
 
-## API and dashboard
+---
 
-The FastAPI service persists projects, snapshots, comparisons, changes, baselines, and GitHub deliveries. SQLite is the zero-setup local mode; PostgreSQL is the supported composed/hosted database and is managed with Alembic migrations.
+# API and dashboard
+
+The FastAPI service persists projects, snapshots, comparison runs, changes, baselines, and GitHub delivery IDs. SQLite is the zero-setup local path; PostgreSQL is the composed/hosted path and is managed through Alembic.
 
 Key endpoints:
 
@@ -496,214 +691,139 @@ GET  /v1/summary
 POST /v1/github/webhook
 ```
 
-The dashboard shows:
+The dashboard presents:
 
 - global project/capture/comparison/change counts;
-- real average compatibility score, including a valid `0/100` result;
+- average compatibility score, including valid `0/100` values;
 - tracked projects;
 - recent comparisons;
 - project timelines;
-- current baseline context;
+- current baseline relationship;
 - run-level score/status;
-- change exploration by surface/severity/text context;
+- change filters by surface, severity, and free-text context;
 - before/after values and evidence references.
 
-API reference: [docs/api.md](docs/api.md).
+API guide: [docs/api.md](docs/api.md).
 
-## Self-hosting
+---
 
-Start the full stack:
+# Self-hosting
+
+Start the stack:
 
 ```bash
 docker compose up --build
 ```
 
-| Service | URL |
+| Service | Address |
 | --- | --- |
 | ReleaseTruth API | `http://localhost:8000` |
 | Dashboard | `http://localhost:3002` |
-| TruthShop good release | `http://localhost:3000` |
-| TruthShop regression release | `http://localhost:3001` |
-| PostgreSQL | internal Compose service `postgres:5432` |
+| TruthShop good | `http://localhost:3000` |
+| TruthShop regression | `http://localhost:3001` |
+| PostgreSQL | Compose service `postgres:5432` |
 
-The API container runs `alembic upgrade head` before Uvicorn starts. Service healthchecks ensure the dashboard waits for the API and the API waits for PostgreSQL.
+The API container runs `alembic upgrade head` before Uvicorn starts. Compose health checks coordinate PostgreSQL → API → dashboard readiness.
 
 See [Self-hosting](docs/deployment/self-hosting.md) and [`.env.example`](.env.example).
 
-## Determinism and trust model
+---
 
-ReleaseTruth is designed so the same normalized behavior produces the same fingerprint and diff without model inference:
+# Determinism and trust model
 
-- UUIDs, timestamps, localhost ports, and temporary paths have conservative default normalization.
+ReleaseTruth is designed so equivalent normalized behavior produces the same fingerprint and deterministic diff without model inference.
+
+- UUIDs, timestamps, localhost ports, and temporary paths have conservative defaults.
 - Explicit rules can remove/replace/regex-normalize values or sort arrays that are semantically unordered.
-- Ordered arrays stay ordered by default because order is often observable behavior.
-- Loopback port volatility can be normalized without treating `localhost` and `127.0.0.1` as the same host identity.
-- Stable object/observation ordering makes finalization reproducible.
-- API credentials/cookies and password-like values are redacted before persistence where adapters know those fields are sensitive.
-- CLI execution uses executable + argv with `shell: false` by default, a temporary working directory, and timeouts.
-- GitHub webhook ingestion is disabled by default. When enabled in production it requires an HMAC secret; unsigned mode is an explicitly named development-only escape hatch.
-- ReleaseTruth does not safely sandbox hostile binaries or hostile capture configurations. Run untrusted scenarios only inside isolation you control.
+- Ordered arrays remain ordered by default because order is frequently observable behavior.
+- Loopback port volatility can be normalized without pretending `localhost` and `127.0.0.1` are identical host identities.
+- API credentials/cookies/password-like fields are redacted where adapters know those fields are sensitive.
+- CLI execution uses executable + argv with `shell: false` by default, temporary working directories, and timeouts.
+- GitHub webhook ingestion is disabled by default; production-enabled mode requires HMAC verification.
+- Unsigned webhook mode is intentionally a development-only escape hatch.
+- ReleaseTruth is **not** a secure sandbox for hostile binaries or hostile capture configuration.
 
-See [Security policy](SECURITY.md) and [Trust model](docs/security/trust-model.md).
+See [SECURITY.md](SECURITY.md) and [Trust model](docs/security/trust-model.md).
 
-## Validation matrix
+---
 
-Every `main` push and pull request runs:
+# Validation matrix
 
-- Rust 1.98.1 format;
+Every `main` push and pull request is configured to run:
+
+- Rust 1.98.1 formatting;
 - Rust Clippy with `-D warnings`;
 - Rust workspace tests;
 - TypeScript typechecks;
 - adapter/dashboard tests;
-- Next.js/package builds;
+- package and Next.js builds;
 - FastAPI Ruff checks;
 - FastAPI pytest;
 - PostgreSQL Alembic upgrade → downgrade → upgrade smoke test;
 - Docker image builds for API, dashboard, and both TruthShop variants;
 - composite GitHub Action smoke test;
-- full behavioral capture → deterministic replay → compare → API persistence → dashboard E2E;
-- E2E assertions for all flagship regressions and persisted summary values;
-- E2E evidence upload including generated behavior locks, report formats, logs, adapter evidence, and dashboard screenshots.
+- full behavior capture → deterministic replay → compare → persistence → dashboard E2E;
+- assertions for all flagship cross-surface regressions;
+- persisted API/dashboard score assertions;
+- E2E evidence upload with locks, reports, logs, adapter evidence, and dashboard screenshots.
 
-Tag pushes matching `v*` are configured to run release validation before producing Linux, macOS, and Windows CLI archives plus SHA-256 checksums in a GitHub Release.
-
-### Most recent fully validated implementation checkpoint
-
-As of the handoff date, GitHub Actions **CI run #47** completed successfully for implementation commit:
+The most recent fully validated implementation checkpoint documented in this handoff is CI run **#47** on:
 
 ```text
 480bbc638c2e0f6e576d6b47a6cf3303a0d241f4
 ```
 
-That run includes the fix that preserves a real zero compatibility average through the API and verifies it at dashboard E2E level.
+Tag pushes matching `v*` are configured to re-run release validation before packaging Linux, macOS, and Windows CLI archives and generating SHA-256 checksums.
 
 Detailed testing guide: [docs/development/testing.md](docs/development/testing.md).
 
-## Repository map
+---
+
+# Repository map
 
 ```text
-crates/core/          deterministic model, normalization, fingerprint, diff, classification, scoring
-crates/cli/           releasetruth CLI, reports, baseline/history/blame/bisect
-adapters/api/         HTTP behavior + timing collector
-adapters/browser/     Playwright journey/browser evidence collector
-adapters/accessibility semantic + axe accessibility collector
-adapters/cli/         subprocess/filesystem behavior collector
-adapters/events/      webhook/event sequence collector
-adapters/performance/ timing summary collector
-packages/runner/      YAML-driven capture orchestrator
-packages/shared-types shared TypeScript behavior-lock types
-apps/demo-shop/       TruthShop good/regression target
-apps/api/             FastAPI persistence + Alembic migrations
-apps/dashboard/       Next.js compatibility dashboard
-schemas/behavior/v1/  behavior lock and change JSON schemas
-scripts/              demo, ingestion, verification, screenshot, release checks
-.github/workflows/    CI and tag release automation
-docs/                 concepts, architecture, deployment, integrations, security, testing, research, release docs
-assets/brand/         ReleaseTruth mark/wordmark usage
+crates/core/            deterministic model, normalization, fingerprint, diff, classification, scoring
+crates/cli/             releasetruth CLI and report/provenance lifecycle
+adapters/api/           HTTP behavior + timing collector
+adapters/browser/       Playwright browser journey collector
+adapters/accessibility/ semantic + axe accessibility collector
+adapters/cli/           subprocess/filesystem behavior collector
+adapters/events/        webhook/event sequence collector
+adapters/performance/   timing summary collector
+packages/runner/        YAML-driven capture orchestrator
+packages/shared-types/  shared TypeScript behavior-lock types
+apps/demo-shop/         TruthShop good/regression target
+apps/api/               FastAPI persistence + Alembic migrations
+apps/dashboard/         Next.js compatibility dashboard
+schemas/behavior/v1/    behavior-lock/change JSON schemas
+scripts/                demo, ingest, verify, screenshots, release checks
+.github/workflows/      CI and tag release automation
+docs/                   concepts, architecture, deployment, integrations, security, testing, research, release
+assets/brand/           banner, mark, wordmark and brand documentation
 ```
 
-### Important root files
+Important root files:
 
 | File | Purpose |
 | --- | --- |
-| `README.md` | authoritative project overview **and continuation handoff** |
-| `Cargo.toml` / `Cargo.lock` | Rust workspace/dependency lock |
-| `rust-toolchain.toml` | pinned Rust toolchain |
-| `package.json` / `pnpm-lock.yaml` | JS/TS workspace scripts/dependency lock |
-| `.releasetruth.demo.yml` | complete runnable capture/classification/scoring demo config |
-| `action.yml` | composite GitHub Action |
-| `docker-compose.yml` | self-hosted platform stack |
-| `Makefile` | canonical developer/release commands |
-| `.env.example` | environment/configuration example |
-| `CHANGELOG.md` | shipped/unreleased change summary |
-| `ROADMAP.md` | product evolution; mirrored into this README TODO for handoff continuity |
-| `SECURITY.md` | vulnerability/security policy |
-| `CONTRIBUTING.md` | contributor workflow |
-| `docs/release/v0.1.0-checklist.md` | release publication gate |
+| `README.md` | authoritative overview + project handoff + TODO |
+| `.releasetruth.demo.yml` | complete runnable capture/classification/scoring example |
+| `action.yml` | reusable composite GitHub Action |
+| `docker-compose.yml` | local/self-hosted stack |
+| `Makefile` | canonical development/release commands |
+| `.env.example` | deployment/configuration example |
+| `Cargo.toml` / `Cargo.lock` | Rust workspace + lockfile |
+| `package.json` / `pnpm-lock.yaml` | TypeScript workspace + lockfile |
+| `CHANGELOG.md` | shipped/unreleased change log |
+| `ROADMAP.md` | future product direction; key items mirrored in the TODO above |
+| `SECURITY.md` | security/vulnerability policy |
+| `docs/release/v0.1.0-checklist.md` | public-release gate |
 
-## Design principles
+---
 
-1. **Observable behavior over implementation intent.** Code changes are inputs; runtime evidence is the contract.
-2. **Determinism before explanation.** Normalization, comparison, classification, and scoring are reproducible without AI.
-3. **Evidence before severity.** Every useful diff should point back to captured behavior/artifacts.
-4. **Cross-surface compatibility.** A release can break users even when an OpenAPI schema or unit test suite still passes.
-5. **Local-first, service-optional.** Behavior locks and CLI comparison work without the server; persistence/dashboard add history and collaboration.
-6. **Conservative normalization.** Remove volatility, not meaning.
-7. **Explicit migrations.** Versioned behavioral contracts should evolve through deliberate schema boundaries.
-8. **Security boundaries are documented, not implied.** Capture tools are not a substitute for process/container isolation.
+# Documentation index
 
-## Prior art and scope
-
-ReleaseTruth intentionally learns from API diff tools, contract testing, browser/visual regression, accessibility tooling, fuzz/schema testing, and CLI snapshot testing while focusing on the gap between them: **one deterministic compatibility view across multiple observable surfaces**.
-
-Prior-art notes cover projects/categories such as oasdiff, Pact, Playwright, Argos/Backstop-style visual regression, axe-core, Schemathesis, and snapbox/trycmd-style CLI testing.
-
-See [prior-art research](docs/research/prior-art.md) and [ROADMAP.md](ROADMAP.md).
-
-## Development
-
-Common commands:
-
-```bash
-make setup          # dependencies + Chromium
-make fmt            # Rust/TS/Python formatting
-make lint           # Rust Clippy + TS + Ruff
-make test           # Rust + TS + Python tests
-make build          # release Rust build + TS/Next builds
-make demo           # six-surface TruthShop capture/diff
-make e2e            # capture -> API -> dashboard verification + screenshots
-make docker-build   # build all Compose images
-make release-check  # canonical local v0.1 release gate
-```
-
-Equivalent major checks include:
-
-```bash
-cargo fmt --all -- --check
-cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-cargo test --locked --workspace
-pnpm install --frozen-lockfile
-pnpm check:ts
-ruff check apps/api
-pytest -q apps/api
-docker compose build
-pnpm --filter @releasetruth/browser-adapter exec playwright install chromium
-./scripts/e2e.sh
-```
-
-Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SUPPORT.md](SUPPORT.md).
-
-## Release status
-
-### Implemented
-
-Source version **0.1.0** contains the complete intended v0.1 implementation path:
-
-- deterministic behavioral core;
-- CLI lifecycle;
-- six adapters;
-- TruthShop proof target;
-- six report formats;
-- persistence API;
-- SQLite local mode;
-- PostgreSQL + Alembic deployment path;
-- dashboard;
-- GitHub composite Action;
-- Docker Compose;
-- CI + full E2E;
-- evidence artifacts and dashboard screenshots;
-- cross-platform tag release workflow;
-- project/release/security/deployment documentation.
-
-### Not yet published
-
-**There is no GitHub Release published at this handoff.** Do not describe v0.1.0 as publicly released until the P0 publication checklist above is complete.
-
-A release should only be published from a commit whose required CI and E2E gates are green; see the [v0.1.0 release checklist](docs/release/v0.1.0-checklist.md).
-
-## Documentation index
-
-Use this README as the starting point. Dive deeper only when the task requires it:
+Use this README first. Dive into these only when a task needs more detail:
 
 | Area | Document |
 | --- | --- |
@@ -719,13 +839,98 @@ Use this README as the starting point. Dive deeper only when the task requires i
 | Self-hosting | [docs/deployment/self-hosting.md](docs/deployment/self-hosting.md) |
 | Testing | [docs/development/testing.md](docs/development/testing.md) |
 | Security / trust boundaries | [docs/security/trust-model.md](docs/security/trust-model.md) |
-| Release checklist | [docs/release/v0.1.0-checklist.md](docs/release/v0.1.0-checklist.md) |
+| v0.1.0 checklist | [docs/release/v0.1.0-checklist.md](docs/release/v0.1.0-checklist.md) |
 | Prior art | [docs/research/prior-art.md](docs/research/prior-art.md) |
 | Roadmap | [ROADMAP.md](ROADMAP.md) |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
 | Contribution guide | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Security policy | [SECURITY.md](SECURITY.md) |
 
-## License
+---
+
+# Design principles
+
+1. **Observable behavior over implementation intent.** Source changes are inputs; runtime evidence is the contract.
+2. **Determinism before explanation.** Normalization, comparison, classification, and scoring remain reproducible without AI.
+3. **Evidence before severity.** Useful changes should trace back to captured observations/artifacts.
+4. **Cross-surface compatibility.** A release can break users even when an API schema or unit suite looks compatible.
+5. **Local-first, service-optional.** Locks and CLI comparisons work without the server; persistence/dashboard add history and collaboration.
+6. **Conservative normalization.** Remove noise, not meaning.
+7. **Explicit migrations.** Versioned behavioral contracts evolve through deliberate schema boundaries.
+8. **Documented security boundaries.** Capture automation is not a replacement for container/process isolation.
+
+---
+
+# Prior art and scope
+
+ReleaseTruth deliberately learns from API diffing, contract testing, browser/visual regression, accessibility tools, schema/fuzz testing, and CLI snapshot testing while targeting the gap between them: **one deterministic compatibility view across multiple observable runtime surfaces**.
+
+See [prior-art research](docs/research/prior-art.md) and [ROADMAP.md](ROADMAP.md).
+
+---
+
+# Development commands
+
+```bash
+make setup          # dependencies + Chromium
+make fmt            # Rust / TypeScript / Python formatting
+make lint           # Rust Clippy + TypeScript lint + Ruff
+make test           # Rust + TypeScript + Python tests
+make build          # release Rust + TypeScript/Next builds
+make demo           # six-surface TruthShop capture/diff
+make e2e            # capture -> API -> dashboard verification + screenshots
+make docker-build   # build Compose images
+make release-check  # canonical local v0.1 release gate
+```
+
+Equivalent major checks:
+
+```bash
+cargo fmt --all -- --check
+cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+cargo test --locked --workspace
+pnpm install --frozen-lockfile
+pnpm check:ts
+ruff check apps/api
+pytest -q apps/api
+docker compose build
+pnpm --filter @releasetruth/browser-adapter exec playwright install chromium
+./scripts/e2e.sh
+```
+
+Contributions: [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SUPPORT.md](SUPPORT.md).
+
+---
+
+# Release status
+
+## Implemented in source v0.1.0
+
+- deterministic core;
+- complete CLI lifecycle;
+- six runtime adapters;
+- TruthShop good/regression proof target;
+- six report formats;
+- persistence API;
+- SQLite local mode;
+- PostgreSQL + Alembic deployment path;
+- dashboard;
+- GitHub composite Action;
+- Docker Compose;
+- CI + full E2E;
+- evidence artifacts and real dashboard screenshots;
+- cross-platform tag-release workflow;
+- project/release/security/deployment documentation;
+- README banner and architecture/flow documentation.
+
+## Not yet published
+
+There is **no public GitHub Release yet** at this handoff. Do not describe `v0.1.0` as publicly released until the P0 publication checklist is complete.
+
+A release must come from an exact commit whose required CI and E2E gates are green. See [docs/release/v0.1.0-checklist.md](docs/release/v0.1.0-checklist.md).
+
+---
+
+# License
 
 Apache-2.0. See [LICENSE](LICENSE).
