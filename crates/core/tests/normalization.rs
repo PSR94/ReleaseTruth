@@ -98,7 +98,7 @@ fn volatile_request_values_do_not_change_fingerprint_but_meaningful_values_do() 
     let right = volatile_fixture(
         "2026-09-10T03:01:02Z",
         "6ba7b810-9dad-41d1-80b4-00c04fd430c8",
-        "http://127.0.0.1:51993/hooks",
+        "http://localhost:51993/hooks",
         "session_beta987",
         2,
     );
@@ -112,7 +112,7 @@ fn volatile_request_values_do_not_change_fingerprint_but_meaningful_values_do() 
     let meaningful_change = volatile_fixture(
         "2026-09-10T03:01:02Z",
         "6ba7b810-9dad-41d1-80b4-00c04fd430c8",
-        "http://127.0.0.1:51993/hooks",
+        "http://localhost:51993/hooks",
         "session_beta987",
         3,
     );
