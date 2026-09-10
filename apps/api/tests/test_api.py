@@ -34,7 +34,7 @@ def test_project_run_baseline_and_summary() -> None:
             "/v1/projects", json={"name": "TruthShop", "slug": "truthshop"}
         ).json()
         report = {
-            "score": {"score": 80.0, "countsBySeverity": {"breaking": 1}},
+            "score": {"score": 0.0, "countsBySeverity": {"breaking": 1}},
             "comparison": {
                 "baseFingerprint": "sha256:base",
                 "candidateFingerprint": "sha256:candidate",
@@ -68,6 +68,7 @@ def test_project_run_baseline_and_summary() -> None:
         assert run.status_code == 201
         body = run.json()
         assert body["status"] == "breaking"
+        assert body["compatibility_score"] == 0.0
         assert body["changes"][0]["severity"] == "breaking"
 
         baseline = client.put(
@@ -83,6 +84,7 @@ def test_project_run_baseline_and_summary() -> None:
         assert summary["projects"] == 1
         assert summary["runs"] == 1
         assert summary["breaking_changes"] == 1
+        assert summary["average_score"] == 0.0
 
 
 def github_signature(secret: str, body: bytes) -> str:

@@ -88,6 +88,7 @@ const summaryResponse = await fetch(`${api}/v1/summary`);
 invariant(summaryResponse.ok, `summary API failed with HTTP ${summaryResponse.status}`);
 const summary = await summaryResponse.json();
 invariant(summary.runs >= 1 && summary.snapshots >= 2 && summary.breaking_changes >= 4, `unexpected persisted summary: ${JSON.stringify(summary)}`);
+invariant(summary.average_score === report.score.score, `summary average score drifted from the only persisted run: ${summary.average_score} != ${report.score.score}`);
 const runsResponse = await fetch(`${api}/v1/runs`);
 invariant(runsResponse.ok, `runs API failed with HTTP ${runsResponse.status}`);
 const runs = await runsResponse.json();
@@ -106,6 +107,12 @@ for (const expected of [
   const [surface, observationId, pathName, severity] = expected;
   invariant(persisted.changes.some((change) => change.surface === surface && change.observation_id === observationId && change.path === pathName && change.severity === severity), `persisted run missing ${surface} ${observationId}${pathName}`);
 }
+
+const overviewResponse = await fetch(dashboard);
+invariant(overviewResponse.ok, `dashboard overview failed with HTTP ${overviewResponse.status}`);
+const overviewHtml = await overviewResponse.text();
+const expectedScoreLabel = `Compatibility score ${Math.round(summary.average_score)} out of 100`;
+invariant(overviewHtml.includes(expectedScoreLabel), `dashboard overview did not render persisted average score: ${expectedScoreLabel}`);
 
 const dashboardResponse = await fetch(`${dashboard}/runs/${runs[0].id}`);
 invariant(dashboardResponse.ok, `dashboard run page failed with HTTP ${dashboardResponse.status}`);

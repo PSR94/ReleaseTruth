@@ -186,7 +186,9 @@ def summary(db: Session = Depends(get_db)) -> SummaryOut:
     significant = db.scalar(
         select(func.count()).select_from(Change).where(Change.severity == "significant")
     ) or 0
-    average = db.scalar(select(func.avg(Run.compatibility_score))) or 100.0
+    average = db.scalar(select(func.avg(Run.compatibility_score)))
+    if average is None:
+        average = 100.0
     return SummaryOut(
         projects=projects,
         snapshots=snapshots,
