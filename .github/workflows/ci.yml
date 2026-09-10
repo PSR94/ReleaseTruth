@@ -154,3 +154,4 @@ jobs:
           name: releasetruth-e2e-evidence
           path: .releasetruth/
           if-no-files-found: ignore
+          include-hidden-files: true

@@ -211,7 +211,7 @@ fn render_html(comparison: &Comparison, score: &ScoreBreakdown) -> String {
     format!(
         r#"<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ReleaseTruth Behavioral Diff</title><style>
 :root{{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color-scheme:light dark;--bg:#0b1020;--panel:#121a2f;--text:#eef3ff;--muted:#97a3bd;--line:#29334b;--danger:#ff6b79;--warn:#ffc866;--minor:#79b8ff;--ok:#61d6a0}}*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--text)}}main{{max-width:1120px;margin:auto;padding:48px 24px 80px}}h1{{font-size:38px;margin:0 0 8px}}.lede{{color:var(--muted)}}.score{{display:grid;grid-template-columns:180px 1fr;gap:24px;align-items:center;background:linear-gradient(135deg,#17213b,#10172a);border:1px solid var(--line);border-radius:18px;padding:24px;margin:28px 0}}.score strong{{font-size:54px}}.stats{{display:grid;grid-template-columns:repeat(4,minmax(90px,1fr));gap:10px}}.stat{{border-left:2px solid var(--line);padding-left:12px}}.stat b{{display:block;font-size:22px}}.change{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:12px 0}}.change header{{display:flex;gap:10px;align-items:center;flex-wrap:wrap}}.change code{{color:var(--muted)}}.badge{{font-size:12px;text-transform:uppercase;letter-spacing:.08em;border:1px solid currentColor;border-radius:999px;padding:4px 8px}}.sev-breaking .badge{{color:var(--danger)}}.sev-significant .badge{{color:var(--warn)}}.sev-minor .badge{{color:var(--minor)}}.sev-expected .badge{{color:var(--ok)}}.values{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#090e1c;border-radius:10px;padding:14px;color:#dce6ff}}small{{color:var(--muted)}}@media(max-width:700px){{.score,.values{{grid-template-columns:1fr}}.stats{{grid-template-columns:1fr 1fr}}}}
-</style></head><body><main><h1>ReleaseTruth Behavioral Diff</h1><p class="lede">Evidence-backed comparison of externally observable release behavior.</p><section class="score"><strong>{:.0}<small>/100</small></strong><div class="stats"><div class="stat"><b>{}</b>breaking</div><div class="stat"><b>{}</b>significant</div><div class="stat"><b>{}</b>minor</div><div class="stat"><b>{}</b>expected</div></div></section>{}</main></body></html>"#,
+</style></head><body><main><h1>ReleaseTruth Behavioral Diff</h1><p class="lede">Compatibility comparison backed by externally observable release evidence.</p><section class="score"><strong>{:.0}<small>/100</small></strong><div class="stats"><div class="stat"><b>{}</b>breaking</div><div class="stat"><b>{}</b>significant</div><div class="stat"><b>{}</b>minor</div><div class="stat"><b>{}</b>expected</div></div></section>{}</main></body></html>"#,
         score.score,
         counts[&Severity::Breaking],
         counts[&Severity::Significant],
@@ -297,5 +297,17 @@ mod tests {
             let rendered = render(format, &comparison, &score).unwrap();
             assert!(!rendered.is_empty());
         }
+    }
+
+    #[test]
+    fn html_report_contains_compatibility_and_evidence_markers() {
+        let (comparison, score) = fixture();
+        let rendered = render(ReportFormat::Html, &comparison, &score).unwrap();
+        assert!(rendered.contains("ReleaseTruth Behavioral Diff"));
+        assert!(rendered.contains("Compatibility"));
+        assert!(rendered.contains("Before"));
+        assert!(rendered.contains("After"));
+        assert!(rendered.contains("POST /orders"));
+        assert!(rendered.contains("http-1"));
     }
 }
